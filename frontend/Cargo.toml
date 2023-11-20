@@ -1,0 +1,13 @@
+cargo-features = [ "per-package-target" ]
+
+[package]
+name = "frontend"
+version = "0.1.0"
+edition = "2021"
+default-target = "wasm32-unknown-unknown"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tauri-interop-api ={ path = "..", default-features = false, features = [ "wasm" ]}
+wasm-bindgen-futures = { version = "0.4" }
