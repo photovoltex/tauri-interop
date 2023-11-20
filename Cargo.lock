@@ -709,7 +709,9 @@ dependencies = [
 name = "frontend"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "tauri-interop-api",
+ "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
 
