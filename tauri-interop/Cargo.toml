@@ -1,13 +1,17 @@
 [package]
 name = "tauri-interop"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 
-[lib]
-proc-macro = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-syn = { version = "2.0", features = [ "full" ]}
-quote = "1.0"
-convert_case = "0.6.0"
-lazy_static = "1.4.0"
+js-sys = "0.3.65"
+serde = { version = "1.0.193", features = ["derive"] }
+tauri-interop-macro ={ path = "../tauri-interop-macro"}
+wasm-bindgen = "0.2.88"
+wasm-bindgen-futures = "0.4.38"
+
+[features]
+default = [ "listen" ]
+listen = []

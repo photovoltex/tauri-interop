@@ -9,7 +9,7 @@ async fn invoke_arguments(_string_to_string: ::std::string::String) {}
 
 #[tauri_interop::conditional_command]
 pub fn invoke_with_return() -> String {
-    "test".to_string()
+    "test string from tauri".to_string()
 }
 
 #[tauri_interop::conditional_command]
@@ -18,13 +18,14 @@ pub fn invoke_with_return_vec() -> Vec<String> {
 }
 
 #[tauri_interop::conditional_command]
-pub fn invoke_with_window_as_argument(_window: Window) -> i32 {
+pub fn invoke_with_window_as_argument(_handle: tauri::AppHandle) -> i32 {
     420
 }
 
 #[tauri_interop::conditional_command]
-pub fn invoke_promise_with_app_handle_as_argument(_handle: tauri::AppHandle) -> Result<(), String> {
-    Ok(())
+pub fn echo(handle: Window) {
+    println!("echo");
+    handle.emit("echo", "echoooooo").unwrap();
 }
 
 #[cfg(feature = "broken")]
