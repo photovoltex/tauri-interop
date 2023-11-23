@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tauri-interop = { path = "../tauri-interop", features = [ "listen" ]}
+tauri-interop = { path = "../../tauri-interop", features = [ "listen" ]}
 
 # common
 log = "0.4.20"

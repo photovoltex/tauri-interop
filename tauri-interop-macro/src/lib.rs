@@ -33,7 +33,11 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
         panic!("No fields provided")
     }
 
-    if stream_struct.fields.iter().any(|field| field.ident.is_none()) {
+    if stream_struct
+        .fields
+        .iter()
+        .any(|field| field.ident.is_none())
+    {
         panic!("Tuple Structs aren't supported")
     }
 
@@ -74,7 +78,7 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
         pub enum #name {
             #( #variants ),*
         }
-        
+
         #stream_struct
 
         impl #struct_ident {
@@ -101,7 +105,11 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
         panic!("No fields provided")
     }
 
-    if stream_struct.fields.iter().any(|field| field.ident.is_none()) {
+    if stream_struct
+        .fields
+        .iter()
+        .any(|field| field.ident.is_none())
+    {
         panic!("Tuple Structs aren't supported")
     }
 
