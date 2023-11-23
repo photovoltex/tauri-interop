@@ -38,7 +38,7 @@ impl ListenHandle {
     }
 }
 
-pub async fn listen<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
+pub async fn register_listener<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {

@@ -30,10 +30,11 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
 
     if stream_struct.fields.is_empty() {
-        panic!(
-            "Invalid amount of fields for '{}' (required: 1)",
-            stream_struct.ident
-        )
+        panic!("No fields provided")
+    }
+
+    if stream_struct.fields.iter().any(|field| field.ident.is_none()) {
+        panic!("Tuple Structs aren't supported")
     }
 
     let name = format_ident!("{}Emit", stream_struct.ident);
@@ -41,7 +42,7 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
         .fields
         .iter()
         .map(|field| {
-            let field_ident = field.ident.as_ref().expect("no type wrapped struct");
+            let field_ident = field.ident.as_ref().expect("handled before");
             let variation = field_ident.to_string().to_case(Case::Pascal);
 
             (format_ident!("{field_ident}"), format_ident!("{variation}"))
@@ -97,10 +98,11 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
 
     if stream_struct.fields.is_empty() {
-        panic!(
-            "Invalid amount of fields for '{}' (required: 1)",
-            stream_struct.ident
-        )
+        panic!("No fields provided")
+    }
+
+    if stream_struct.fields.iter().any(|field| field.ident.is_none()) {
+        panic!("Tuple Structs aren't supported")
     }
 
     let struct_ident = &stream_struct.ident;
@@ -113,14 +115,14 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
             let field_ident = field
                 .ident
                 .as_ref()
-                .expect("no type wrapped struct")
+                .expect("handled before")
                 .clone();
             let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
             let fn_name = format_ident!("listen_to_{fn_ident}");
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
                 pub async fn #fn_name(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult {
-                    tauri_interop::listen::listen(stringify!(#field_ident), callback).await
+                    tauri_interop::listen::register_listener(stringify!(#field_ident), callback).await
                 }
             }
         }).collect::<Vec<_>>();
