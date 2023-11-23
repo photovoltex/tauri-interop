@@ -4,36 +4,24 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    punctuated::Punctuated, token::Comma, FnArg,
-    Ident, ItemFn, Pat, ReturnType, Signature, Type, ItemUse, PathSegment, parse_macro_input,
+    parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse, Pat,
+    PathSegment, ReturnType, Signature, Type,
 };
 
 #[cfg(feature = "listen")]
 use syn::ItemStruct;
 
 #[cfg(feature = "listen")]
-struct EnumVariation { name: Ident, variants: Vec<(Ident, Ident)> }
+#[proc_macro_attribute]
+pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
+    let stream_struct = parse_macro_input!(stream as ItemStruct);
+    let stream = quote! {
+        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
+        #[cfg_attr(not(target_family = "wasm"), tauri_interop::emit)]
+        #stream_struct
+    };
 
-#[cfg(feature = "listen")]
-fn get_enum_variation(item_struct: &ItemStruct) -> EnumVariation {
-    let name = format_ident!("{}Emit", item_struct.ident);
-    let variants = item_struct
-        .fields
-        .iter()
-        .map(|field| {
-            let field_ident = field
-                .ident
-                .as_ref()
-                .expect("no type wrapped struct");
-            let variation = field_ident
-                .to_string()
-                .to_case(Case::Pascal);
-
-            (format_ident!("{field_ident}"), format_ident!("{variation}"))
-        })
-        .collect::<Vec<_>>();
-
-    EnumVariation { name, variants }
+    TokenStream::from(stream.to_token_stream())
 }
 
 #[cfg(feature = "listen")]
@@ -42,15 +30,25 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
 
     if stream_struct.fields.is_empty() {
-        panic!("Invalid amount of fields for '{}' (required: 1)", stream_struct.ident)
+        panic!(
+            "Invalid amount of fields for '{}' (required: 1)",
+            stream_struct.ident
+        )
     }
 
-    let struct_ident = &stream_struct.ident;
-    let EnumVariation {
-        name,
-        variants
-    } = get_enum_variation(&stream_struct);
+    let name = format_ident!("{}Emit", stream_struct.ident);
+    let variants = stream_struct
+        .fields
+        .iter()
+        .map(|field| {
+            let field_ident = field.ident.as_ref().expect("no type wrapped struct");
+            let variation = field_ident.to_string().to_case(Case::Pascal);
 
+            (format_ident!("{field_ident}"), format_ident!("{variation}"))
+        })
+        .collect::<Vec<_>>();
+
+    let struct_ident = &stream_struct.ident;
     let mapped_variants = variants
         .iter()
         .map(|(field_ident, variant_ident)| {
@@ -65,7 +63,17 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    let variants = variants
+        .into_iter()
+        .map(|(_, variation)| variation)
+        .collect::<Vec<_>>();
+
     let stream = quote! {
+        #[derive(Debug, Clone)]
+        pub enum #name {
+            #( #variants ),*
+        }
+        
         #stream_struct
 
         impl #struct_ident {
@@ -85,40 +93,17 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
 
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
-pub fn conditional_emit(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
-    let EnumVariation { 
-        name, 
-        variants 
-    } = get_enum_variation(&stream_struct);
-
-    let variants = variants
-        .into_iter()
-        .map(|(_, variation)| variation)
-        .collect::<Vec<_>>();
-
-    let stream = quote! {
-        #[derive(Debug, Clone)]
-        pub enum #name {
-            #( #variants ),*
-        }
-
-        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
-        #[cfg_attr(not(target_family = "wasm"), tauri_interop::emit)]
-        #stream_struct
-    };
-
-    TokenStream::from(stream.to_token_stream())
-}
-
-#[cfg(feature = "listen")]
-#[proc_macro_attribute]
 pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
 
     if stream_struct.fields.is_empty() {
-        panic!("Invalid amount of fields for '{}' (required: 1)", stream_struct.ident)
+        panic!(
+            "Invalid amount of fields for '{}' (required: 1)",
+            stream_struct.ident
+        )
     }
+
+    let struct_ident = &stream_struct.ident;
 
     let mapped_variants = stream_struct
         .fields
@@ -135,30 +120,17 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
                 pub async fn #fn_name(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult {
-                    // imported for usage of .dyn_into
-                    use ::wasm_bindgen::JsCast;
-
-                    let closure = ::wasm_bindgen::prelude::Closure::new(move |value| {
-                        let payload = ::serde_wasm_bindgen::from_value::<::tauri_interop::listen::Payload<#ty>>(value).expect("serializable");
-                        callback(payload.payload)
-                    });
-                
-                    let ignore = ::tauri_interop::bindings::listen(stringify!(#field_ident), &closure);
-                    let detach_fn = ::wasm_bindgen_futures::JsFuture::from(ignore)
-                        .await
-                        .map_err(|why| ::tauri_interop::listen::ListenError::PromiseFailed(why))?
-                        .dyn_into::<::js_sys::Function>()
-                        .map_err(|why| ::tauri_interop::listen::ListenError::NotAFunction(why))?;
-                
-                    Ok(::tauri_interop::listen::ListenHandle::new(closure, detach_fn))
+                    tauri_interop::listen::listen(stringify!(#field_ident), callback).await
                 }
             }
         }).collect::<Vec<_>>();
 
-    let stream = quote!{
+    let stream = quote! {
         #stream_struct
 
-        #( #mapped_variants )*
+        impl #struct_ident {
+            #( #mapped_variants )*
+        }
     };
 
     TokenStream::from(stream.to_token_stream())
@@ -168,10 +140,10 @@ lazy_static::lazy_static! {
     static ref HANDLER_LIST: Mutex<BTreeSet<String>> = Mutex::new(Default::default());
 }
 
-const TAURI_TYPES: [&str; 3] = [ "State", "AppHandle", "Window" ];
+const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
 
 /// really cheap filter for TAURI_TYPES
-/// didn't figure out a way to only include tauri:: Structs/Enums and 
+/// didn't figure out a way to only include tauri:: Structs/Enums and
 /// for now all ident name like the above TAURI_TYPES are filtered
 fn is_tauri_type(segment: &PathSegment) -> bool {
     TAURI_TYPES.contains(&segment.ident.to_string().as_str())
@@ -184,11 +156,7 @@ fn is_result(segment: &PathSegment) -> bool {
 /// wasm command
 #[proc_macro_attribute]
 pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let ItemFn {
-        attrs,
-        sig,
-        ..
-    } = parse_macro_input!(stream as ItemFn);
+    let ItemFn { attrs, sig, .. } = parse_macro_input!(stream as ItemFn);
 
     let Signature {
         ident,
@@ -209,9 +177,9 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
                     // this could probably be a problem later
                     Type::Path(path) => path.path.segments.iter().any(is_result),
                     others => panic!("no support for '{}'", others.to_token_stream()),
-                }
+                },
             )
-        },
+        }
     };
 
     let mut args_inputs: Punctuated<Ident, Comma> = Punctuated::new();
@@ -227,7 +195,7 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
 
                 if let Pat::Ident(ident) = typed.pat.as_ref() {
                     args_inputs.push(ident.ident.clone());
-                    return Some(fn_inputs)
+                    return Some(fn_inputs);
                 }
             }
             None
@@ -243,12 +211,12 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
                 .map_err(|value| serde_wasm_bindgen::from_value(value).expect("err: conversion error"))
         }
     } else if async_ident.is_some() {
-        quote! { 
+        quote! {
             let value = ::tauri_interop::bindings::async_invoke(stringify!(#ident), args).await;
             serde_wasm_bindgen::from_value(value).expect("conversion error")
         }
     } else {
-        quote! { 
+        quote! {
             ::tauri_interop::bindings::invoke(stringify!(#ident), args);
         }
     };
@@ -278,7 +246,10 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
 pub fn conditional_command(_: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = syn::parse::<ItemFn>(stream).unwrap();
 
-    HANDLER_LIST.lock().unwrap().insert(fn_item.sig.ident.to_string());
+    HANDLER_LIST
+        .lock()
+        .unwrap()
+        .insert(fn_item.sig.ident.to_string());
 
     let command_macro = quote! {
         #[cfg_attr(target_family = "wasm", tauri_interop::command)]

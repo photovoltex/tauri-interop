@@ -1,7 +1,7 @@
 #[tauri_interop::conditional_use]
-use tauri::{Window, Manager};
-#[tauri_interop::conditional_use]
 use crate::model::{TestState, TestStateEmit};
+#[tauri_interop::conditional_use]
+use tauri::{Manager, Window};
 
 #[tauri_interop::conditional_command]
 pub fn empty_invoke() {}
@@ -35,7 +35,7 @@ pub fn emit(handle: tauri::AppHandle) {
     let test_state = TestState {
         echo: String::from("value"),
         foo: 420,
-        bar: false
+        bar: false,
     };
 
     test_state.emit(&handle, TestStateEmit::Echo).unwrap();
@@ -51,7 +51,7 @@ pub mod broken {
     pub enum State {
         OwO,
     }
-    
+
     #[allow(clippy::result_unit_err)]
     /// currently this doesn't work cause of the way tauri::{AppHandel, State, Window} are filtered
     #[tauri_interop::conditional_command]
