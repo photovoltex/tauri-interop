@@ -9,43 +9,71 @@ use syn::{
 };
 
 #[cfg(feature = "listen")]
-#[proc_macro_attribute]
-pub fn handle_emit_all(_: TokenStream, stream: TokenStream) -> TokenStream {
-    use syn::ItemEnum;
+use syn::ItemStruct;
 
-    let stream_enum = parse_macro_input!(stream as ItemEnum);
+#[cfg(feature = "listen")]
+struct EnumVariation { name: Ident, variants: Vec<(Ident, Ident)> }
 
-    let ident = stream_enum.ident.clone();
-    let mapped_variants = stream_enum
-        .variants
+#[cfg(feature = "listen")]
+fn get_enum_variation(item_struct: &ItemStruct) -> EnumVariation {
+    let name = format_ident!("{}Emit", item_struct.ident);
+    let variants = item_struct
+        .fields
         .iter()
-        .map(|variant| {
-            let variant_ident = variant.ident.clone();
+        .map(|field| {
+            let field_ident = field
+                .ident
+                .as_ref()
+                .expect("no type wrapped struct");
+            let variation = field_ident
+                .to_string()
+                .to_case(Case::Pascal);
 
-            if variant.fields.len() > 1 || variant.fields.is_empty() {
-                panic!("Invalid amount of fields for '{variant_ident}' (required: 1)")
-            }
+            (format_ident!("{field_ident}"), format_ident!("{variation}"))
+        })
+        .collect::<Vec<_>>();
 
+    EnumVariation { name, variants }
+}
+
+#[cfg(feature = "listen")]
+#[proc_macro_attribute]
+pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
+    let stream_struct = parse_macro_input!(stream as ItemStruct);
+
+    if stream_struct.fields.is_empty() {
+        panic!("Invalid amount of fields for '{}' (required: 1)", stream_struct.ident)
+    }
+
+    let struct_ident = &stream_struct.ident;
+    let EnumVariation {
+        name,
+        variants
+    } = get_enum_variation(&stream_struct);
+
+    let mapped_variants = variants
+        .iter()
+        .map(|(field_ident, variant_ident)| {
             // todo: had an thought, where we could replace this duplicate code with an enum... look later into plz :3
             quote! {
-                #ident::#variant_ident (payload) => {
-                    let (ident, event) = (stringify!(#ident), stringify!(#variant_ident));
-                    log::trace!("{ident} emitted event [{event}] via provided handle");
-                    handle.emit_all(event, payload)
+                #name::#variant_ident => {
+                    let (struct_ident, field_ident) = (stringify!(#struct_ident), stringify!(#field_ident));
+                    log::trace!("{struct_ident} emitted [{field_ident}] via provided handle");
+                    handle.emit_all(field_ident, self.#field_ident.clone())
                 }
             }
         })
         .collect::<Vec<_>>();
 
     let stream = quote! {
-        #stream_enum
+        #stream_struct
 
-        impl #ident {
+        impl #struct_ident {
             #[must_use]
-            pub fn with_handle(self, handle: &::tauri::AppHandle) -> Result<(), tauri::Error> {
+            pub fn emit(&self, handle: &::tauri::AppHandle, field: #name) -> Result<(), tauri::Error> {
                 use tauri::Manager;
 
-                match self {
+                match field {
                     #( #mapped_variants ),*
                 }
             }
@@ -57,40 +85,27 @@ pub fn handle_emit_all(_: TokenStream, stream: TokenStream) -> TokenStream {
 
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
-pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
-    use syn::ItemStruct;
-
+pub fn conditional_emit(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
+    let EnumVariation { 
+        name, 
+        variants 
+    } = get_enum_variation(&stream_struct);
 
-    let ident = format_ident!("Emit{}", stream_struct.ident);
-    let mapped_variants = stream_struct
-        .fields
-        .iter()
-        .map(|field| {
-            let field_name = field
-                .ident
-                .as_ref()
-                .expect("no type wrapped struct")
-                .to_string()
-                .to_case(Case::Pascal);
-
-            let field_ident = format_ident!("{field_name}");
-            let field_ty = &field.ty;
-
-            // single enum entry
-            quote! { #field_ident (#field_ty) }
-        })
+    let variants = variants
+        .into_iter()
+        .map(|(_, variation)| variation)
         .collect::<Vec<_>>();
 
     let stream = quote! {
-        #stream_struct
-        
-        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
-        #[cfg_attr(not(target_family = "wasm"), tauri_interop::handle_emit_all)]
         #[derive(Debug, Clone)]
-        pub enum #ident {
-            #( #mapped_variants ),*
+        pub enum #name {
+            #( #variants ),*
         }
+
+        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
+        #[cfg_attr(not(target_family = "wasm"), tauri_interop::emit)]
+        #stream_struct
     };
 
     TokenStream::from(stream.to_token_stream())
@@ -99,21 +114,23 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
 pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
-    use syn::ItemEnum;
+    let stream_struct = parse_macro_input!(stream as ItemStruct);
 
-    let stream_enum = parse_macro_input!(stream as ItemEnum);
+    if stream_struct.fields.is_empty() {
+        panic!("Invalid amount of fields for '{}' (required: 1)", stream_struct.ident)
+    }
 
-    let mapped_variants = stream_enum
-        .variants
+    let mapped_variants = stream_struct
+        .fields
         .iter()
-        .map(|variant| {
-            if variant.fields.len() > 1 || variant.fields.is_empty() {
-                panic!("Invalid amount of fields for '{}' (required: 1)", variant.ident)
-            }
-
-            let ty = variant.fields.iter().next().expect("at least one field").ty.clone();
-            let variant_ident = variant.ident.clone();
-            let fn_ident = variant_ident.to_string().to_case(Case::Snake).to_lowercase();
+        .map(|field| {
+            let ty = &field.ty;
+            let field_ident = field
+                .ident
+                .as_ref()
+                .expect("no type wrapped struct")
+                .clone();
+            let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
             let fn_name = format_ident!("listen_to_{fn_ident}");
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
@@ -126,7 +143,7 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                         callback(payload.payload)
                     });
                 
-                    let ignore = ::tauri_interop::bindings::listen(stringify!(#variant_ident), &closure);
+                    let ignore = ::tauri_interop::bindings::listen(stringify!(#field_ident), &closure);
                     let detach_fn = ::wasm_bindgen_futures::JsFuture::from(ignore)
                         .await
                         .map_err(|why| ::tauri_interop::listen::ListenError::PromiseFailed(why))?
@@ -139,7 +156,7 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
         }).collect::<Vec<_>>();
 
     let stream = quote!{
-        #stream_enum
+        #stream_struct
 
         #( #mapped_variants )*
     };

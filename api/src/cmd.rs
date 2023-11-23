@@ -1,7 +1,7 @@
 #[tauri_interop::conditional_use]
 use tauri::{Window, Manager};
 #[tauri_interop::conditional_use]
-use crate::model::EmitTestState;
+use crate::model::{TestState, TestStateEmit};
 
 #[tauri_interop::conditional_command]
 pub fn empty_invoke() {}
@@ -29,11 +29,18 @@ pub fn invoke_with_window_as_argument() -> i32 {
 }
 
 #[tauri_interop::conditional_command]
-pub fn echo(handle: tauri::AppHandle) {
-    println!("echo cmd received");
-    EmitTestState::Echo("emitted echo to frontend".to_string())
-        .with_handle(&handle)
-        .unwrap();
+pub fn emit(handle: tauri::AppHandle) {
+    log::info!("echo cmd received");
+
+    let test_state = TestState {
+        echo: String::from("value"),
+        foo: 420,
+        bar: false
+    };
+
+    test_state.emit(&handle, TestStateEmit::Echo).unwrap();
+    test_state.emit(&handle, TestStateEmit::Foo).unwrap();
+    test_state.emit(&handle, TestStateEmit::Bar).unwrap();
 }
 
 #[cfg(feature = "broken")]

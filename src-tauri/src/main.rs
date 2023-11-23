@@ -1,6 +1,11 @@
 use tauri::Manager;
 
 fn main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Trace)
+        .try_init()
+        .unwrap();
+
     tauri::Builder::default()
         .invoke_handler(api::cmd::get_handlers())
         .setup(move |app| {

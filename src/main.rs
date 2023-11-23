@@ -13,18 +13,30 @@ fn main() {
     });
 
     wasm_bindgen_futures::spawn_local(async move {
-        let handle = api::model::listen_to_echo(|echo|
+        let handle_echo = api::model::listen_to_echo(|echo|
             log::info!("echo: {echo}")
         ).await.unwrap();
 
-        Timeout::new(1000, api::cmd::echo).forget();
+        let handle_foo = api::model::listen_to_foo(|echo|
+            log::info!("foo: {echo}")
+        ).await.unwrap();
+
+        let handle_bar = api::model::listen_to_bar(|echo|
+            log::info!("bar: {echo}")
+        ).await.unwrap();
+
+        Timeout::new(1000, api::cmd::emit).forget();
         // with the move here, we hold "handle" in scope... if we wouldn't do that
         // handle would be dropped already and we get errors in the ui
         //
         // it can be fixed with `handle.closure.take().unwrap().forget()`
         // see the `Closure::forget` docs, why this isn't the recommended way
-        Timeout::new(2000, move || handle.detach_listen()).forget();
-        Timeout::new(3000, api::cmd::echo).forget();
+        Timeout::new(2000, move || {
+            handle_echo.detach_listen();
+            handle_foo.detach_listen();
+            handle_bar.detach_listen();
+        }).forget();
+        Timeout::new(3000, api::cmd::emit).forget();
 
     });
 }
