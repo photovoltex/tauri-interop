@@ -6,12 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tauri-interop-macro = { path = "../tauri-interop-macro" }
+
 js-sys = "0.3.65"
 serde = { version = "1.0.193", features = ["derive"] }
-tauri-interop-macro ={ path = "../tauri-interop-macro"}
 wasm-bindgen = "0.2.88"
 wasm-bindgen-futures = "0.4.38"
+thiserror = "1.0.50"
 
 [features]
 default = [ "listen" ]
-listen = []
+listen = [ "tauri-interop-macro/listen" ]

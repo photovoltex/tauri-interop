@@ -66,6 +66,7 @@ checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 name = "api"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "log",
  "serde",
  "serde-wasm-bindgen",
@@ -2817,6 +2818,7 @@ dependencies = [
  "js-sys",
  "serde",
  "tauri-interop-macro",
+ "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]

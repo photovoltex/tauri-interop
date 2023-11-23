@@ -1,15 +1,21 @@
 #[tauri_interop::conditional_use]
-use tauri::Window;
+use tauri::{Window, Manager};
+#[tauri_interop::conditional_use]
+use crate::model::EmitTestState;
 
 #[tauri_interop::conditional_command]
 pub fn empty_invoke() {}
 
 #[tauri_interop::conditional_command]
-async fn invoke_arguments(_string_to_string: ::std::string::String) {}
+fn invoke_arguments(_string_to_string: ::std::string::String) {}
 
 #[tauri_interop::conditional_command]
-pub fn invoke_with_return() -> String {
-    "test string from tauri".to_string()
+pub fn invoke_with_return(window: Window) -> String {
+    window
+        .windows()
+        .into_keys()
+        .intersperse(String::from(","))
+        .collect()
 }
 
 #[tauri_interop::conditional_command]
@@ -18,14 +24,16 @@ pub fn invoke_with_return_vec() -> Vec<String> {
 }
 
 #[tauri_interop::conditional_command]
-pub fn invoke_with_window_as_argument(_handle: tauri::AppHandle) -> i32 {
+pub fn invoke_with_window_as_argument() -> i32 {
     420
 }
 
 #[tauri_interop::conditional_command]
-pub fn echo(handle: Window) {
-    println!("echo");
-    handle.emit("echo", "echoooooo").unwrap();
+pub fn echo(handle: tauri::AppHandle) {
+    println!("echo cmd received");
+    EmitTestState::Echo("emitted echo to frontend".to_string())
+        .with_handle(&handle)
+        .unwrap();
 }
 
 #[cfg(feature = "broken")]
@@ -45,4 +53,4 @@ pub mod broken {
     }
 }
 
-tauri_interop::setup!();
+tauri_interop::collect_handlers!();

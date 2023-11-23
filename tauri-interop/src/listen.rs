@@ -1,10 +1,21 @@
 use js_sys::Function;
+use serde::{Serialize, Deserialize};
 use wasm_bindgen::{JsValue, closure::Closure};
 
-#[derive(Debug)]
+pub type ListenResult = Result<ListenHandle, ListenError>;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Payload<T> {
+    pub payload: T,
+    event: String
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum ListenError {
-    PromiseFailed,
-    NotAFunction
+    #[error("The promise to register the listener failed: {0:?}")]
+    PromiseFailed(JsValue),
+    #[error("The function to detach the listener wasn't a function: {0:?}")]
+    NotAFunction(JsValue)
 }
 
 pub struct ListenHandle {
