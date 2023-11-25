@@ -1,7 +1,12 @@
 [package]
+edition.workspace = true
+version.workspace = true
+keywords.workspace = true
+authors.workspace = true
+repository.workspace = true
+
 name = "tauri-interop-macro"
-version = "1.0.0"
-edition = "2021"
+description = "Macros for the tauri-interop crate."
 
 [lib]
 proc-macro = true

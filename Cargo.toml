@@ -1,10 +1,21 @@
-[package]
-name = "tauri-interop"
-version = "1.0.0"
-edition = "2021"
-
 [workspace]
 members = [ "tauri-interop-macro" ]
+package.edition = "2021"
+package.version = "1.0.0"
+package.keywords = [ "wasm", "tauri", "command", "event" ]
+package.authors = [ "photovoltex" ]
+package.repository = "https://github.com/photovoltex/tauri-interop.git"
+
+[package]
+edition.workspace = true
+version.workspace = true
+keywords.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+name = "tauri-interop"
+description = "Easily connect your rust frontend and backend without writing duplicate code."
+readme = "README.md"
 
 [dependencies]
 tauri-interop-macro = { path = "./tauri-interop-macro" }

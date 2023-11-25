@@ -51,7 +51,7 @@ pub mod broken {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub enum State {
-        OwO,
+        Test,
     }
 
     #[allow(clippy::result_unit_err)]
