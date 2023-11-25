@@ -1,2 +1,3 @@
 [workspace]
 members = [ "tauri-interop", "tauri-interop-macro" ]
+resolver = "2"

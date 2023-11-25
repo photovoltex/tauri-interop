@@ -24,6 +24,28 @@ pub struct ListenHandle {
 }
 
 impl ListenHandle {
+    pub async fn register<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
+    where
+        T: for<'de> Deserialize<'de> + Serialize,
+    {
+        let closure = wasm_bindgen::prelude::Closure::new(move |value| {
+            let payload: Payload<T> = serde_wasm_bindgen::from_value(value)
+                .map_err(|why| log::error!("{why:?}"))
+                .expect("passed value from backend didn't serialized correctly");
+
+            callback(payload.payload)
+        });
+
+        let ignore = crate::bindings::listen(event, &closure);
+        let detach_fn = wasm_bindgen_futures::JsFuture::from(ignore)
+            .await
+            .map_err(ListenError::PromiseFailed)?
+            .dyn_into::<Function>()
+            .map_err(ListenError::NotAFunction)?;
+
+        Ok(ListenHandle::new(closure, detach_fn))
+    }
+
     pub fn new(closure: Closure<dyn Fn(JsValue)>, detach_fn: Function) -> Self {
         Self {
             closure: Some(closure),
@@ -36,24 +58,4 @@ impl ListenHandle {
             .apply(&JsValue::null(), &js_sys::Array::new())
             .unwrap();
     }
-}
-
-pub async fn register_listener<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
-where
-    T: for<'de> Deserialize<'de> + Serialize,
-{
-    let closure = wasm_bindgen::prelude::Closure::new(move |value| {
-        let payload: Payload<T> = serde_wasm_bindgen::from_value(value).expect("serializable");
-
-        callback(payload.payload)
-    });
-
-    let ignore = crate::bindings::listen(event, &closure);
-    let detach_fn = wasm_bindgen_futures::JsFuture::from(ignore)
-        .await
-        .map_err(ListenError::PromiseFailed)?
-        .dyn_into::<Function>()
-        .map_err(ListenError::NotAFunction)?;
-
-    Ok(ListenHandle::new(closure, detach_fn))
 }

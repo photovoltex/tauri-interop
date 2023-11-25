@@ -1,16 +1,18 @@
-#[tauri_interop::conditional_use]
+#[tauri_interop::host_usage]
 use crate::model::{TestState, TestStateEmit};
-#[tauri_interop::conditional_use]
-use tauri::{Manager, Window};
 
-#[tauri_interop::conditional_command]
+#[tauri_interop::command]
 pub fn empty_invoke() {}
 
-#[tauri_interop::conditional_command]
-fn invoke_arguments(_string_to_string: ::std::string::String) {}
+#[tauri_interop::command]
+fn greet(name_to_greet: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name_to_greet)
+}
 
-#[tauri_interop::conditional_command]
-pub fn invoke_with_return(window: Window) -> String {
+#[tauri_interop::command]
+pub fn invoke_with_return(window: tauri::Window) -> String {
+    use tauri::Manager;
+
     window
         .windows()
         .into_keys()
@@ -18,17 +20,12 @@ pub fn invoke_with_return(window: Window) -> String {
         .collect()
 }
 
-#[tauri_interop::conditional_command]
-pub fn invoke_with_return_vec() -> Vec<String> {
-    vec![]
+#[tauri_interop::command]
+pub fn invoke_with_return_vec() -> Vec<i32> {
+    vec![ 69, 420 ]
 }
 
-#[tauri_interop::conditional_command]
-pub fn invoke_with_window_as_argument() -> i32 {
-    420
-}
-
-#[tauri_interop::conditional_command]
+#[tauri_interop::command]
 pub fn emit(handle: tauri::AppHandle) {
     log::info!("echo cmd received");
 

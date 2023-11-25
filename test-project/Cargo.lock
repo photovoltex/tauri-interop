@@ -2846,6 +2846,7 @@ name = "tauri-interop"
 version = "0.1.0"
 dependencies = [
  "js-sys",
+ "log",
  "serde",
  "serde-wasm-bindgen",
  "tauri-interop-macro",

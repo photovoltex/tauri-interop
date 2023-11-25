@@ -1,11 +1,11 @@
 use std::{collections::BTreeSet, sync::Mutex};
 
 use convert_case::{Case, Casing};
-use proc_macro::TokenStream;
+use proc_macro::{TokenStream, Span};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse, Pat,
-    PathSegment, ReturnType, Signature, Type,
+    PathSegment, ReturnType, Signature, Type, Lifetime, LifetimeParam,
 };
 
 #[cfg(feature = "listen")]
@@ -130,7 +130,7 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
                 pub async fn #fn_name(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult {
-                    tauri_interop::listen::register_listener(stringify!(#field_ident), callback).await
+                    ::tauri_interop::listen::ListenHandle::register(stringify!(#field_ident), callback).await
                 }
             }
         }).collect::<Vec<_>>();
@@ -150,6 +150,7 @@ lazy_static::lazy_static! {
     static ref HANDLER_LIST: Mutex<BTreeSet<String>> = Mutex::new(Default::default());
 }
 
+const ARGUMENT_LIFETIME: &str = "'arg_lifetime";
 const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
 
 /// really cheap filter for TAURI_TYPES
@@ -165,12 +166,12 @@ fn is_result(segment: &PathSegment) -> bool {
 
 /// wasm command
 #[proc_macro_attribute]
-pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
+pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
     let ItemFn { attrs, sig, .. } = parse_macro_input!(stream as ItemFn);
 
     let Signature {
         ident,
-        generics,
+        mut generics,
         inputs,
         variadic,
         output,
@@ -192,15 +193,19 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
         }
     };
 
+    let mut requires_lifetime_constrain = false;
     let mut args_inputs: Punctuated<Ident, Comma> = Punctuated::new();
     let wasm_inputs = inputs
         .into_iter()
-        .filter_map(|fn_inputs| {
-            if let FnArg::Typed(typed) = &fn_inputs {
-                if let Type::Path(path) = typed.ty.as_ref() {
-                    if path.path.segments.iter().any(is_tauri_type) {
-                        return None;
+        .filter_map(|mut fn_inputs| {
+            if let FnArg::Typed(ref mut typed) = fn_inputs {
+                match typed.ty.as_mut() {
+                    Type::Path(path) if path.path.segments.iter().any(is_tauri_type) => return None,
+                    Type::Reference(reference) => {
+                        reference.lifetime = Some(Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into()));
+                        requires_lifetime_constrain = true;
                     }
+                    _ => {}
                 }
 
                 if let Pat::Ident(ident) = typed.pat.as_ref() {
@@ -217,13 +222,13 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
     let invoke = if need_catch {
         quote! {
             ::tauri_interop::bindings::invoke_catch(stringify!(#ident), args).await
-                .map(|value| serde_wasm_bindgen::from_value(value).expect("ok: conversion error"))
-                .map_err(|value| serde_wasm_bindgen::from_value(value).expect("err: conversion error"))
+                .map(|value| ::serde_wasm_bindgen::from_value(value).expect("ok: conversion error"))
+                .map_err(|value| ::serde_wasm_bindgen::from_value(value).expect("err: conversion error"))
         }
     } else if async_ident.is_some() {
         quote! {
             let value = ::tauri_interop::bindings::async_invoke(stringify!(#ident), args).await;
-            serde_wasm_bindgen::from_value(value).expect("conversion error")
+            ::serde_wasm_bindgen::from_value(value).expect("conversion error")
         }
     } else {
         quote! {
@@ -231,9 +236,14 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
         }
     };
 
+    if requires_lifetime_constrain {
+        let lt = Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into());
+        generics.params.push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
+    }
+
     let stream = quote! {
         #[derive(::serde::Serialize, ::serde::Deserialize)]
-        struct #generics #args_ident {
+        struct #args_ident #generics {
             #wasm_inputs
         }
 
@@ -253,7 +263,7 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
 
 /// command which is expected to be used instead of tauri::command
 #[proc_macro_attribute]
-pub fn conditional_command(_: TokenStream, stream: TokenStream) -> TokenStream {
+pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = syn::parse::<ItemFn>(stream).unwrap();
 
     HANDLER_LIST
@@ -262,8 +272,8 @@ pub fn conditional_command(_: TokenStream, stream: TokenStream) -> TokenStream {
         .insert(fn_item.sig.ident.to_string());
 
     let command_macro = quote! {
-        #[cfg_attr(target_family = "wasm", tauri_interop::command)]
-        #[cfg_attr(not(target_family = "wasm"), tauri::command)]
+        #[cfg_attr(target_family = "wasm", tauri_interop::binding)]
+        #[cfg_attr(not(target_family = "wasm"), tauri::command(rename_all = "snake_case"))]
         #fn_item
     };
 
@@ -291,11 +301,23 @@ pub fn collect_handlers(_: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn conditional_use(_: TokenStream, stream: TokenStream) -> TokenStream {
+pub fn host_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
     let item_use = parse_macro_input!(stream as ItemUse);
 
     let command_macro = quote! {
         #[cfg(not(target_family = "wasm"))]
+        #item_use
+    };
+
+    TokenStream::from(command_macro.to_token_stream())
+}
+
+#[proc_macro_attribute]
+pub fn wasm_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
+    let item_use = parse_macro_input!(stream as ItemUse);
+
+    let command_macro = quote! {
+        #[cfg(target_family = "wasm")]
         #item_use
     };
 

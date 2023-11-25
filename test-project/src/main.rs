@@ -7,13 +7,8 @@ fn main() {
 
     api::cmd::empty_invoke();
 
-    log::info!("logger is initialized");
-
     wasm_bindgen_futures::spawn_local(async {
-        log::info!(
-            "invoke_with_return: {}",
-            api::cmd::invoke_with_return().await
-        )
+        log::info!("{}", api::cmd::greet("frontend").await);
     });
 
     wasm_bindgen_futures::spawn_local(async move {
