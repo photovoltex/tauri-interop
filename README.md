@@ -1,5 +1,9 @@
 # Tauri-Interop
 
+[![Latest version](https://img.shields.io/crates/v/tauri-interop.svg)](https://crates.io/crates/tauri-interop)
+[![Documentation](https://docs.rs/tauri-interop/badge.svg)](https://docs.rs/tauri-interop)
+![License](https://img.shields.io/crates/l/tauri-interop.svg)
+
 What this crate tries to achieve:
 - generate a wasm-function from your defined `tauri::command` by using `tauri_interop::command` instead
 - collect all defined `tauri_interop::command` by invoking `tauri_interop::collect_commands!()` at the end of a file
