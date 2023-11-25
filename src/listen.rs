@@ -2,28 +2,38 @@ use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
-pub type ListenResult = Result<ListenHandle, ListenError>;
+/// The result type that is returned by [ListenHandle::register]
+pub type ListenResult<'s> = Result<ListenHandle<'s>, ListenError>;
 
+/// The generic payload received from [crate::bindings::listen] used for deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload<T> {
-    pub payload: T,
+    payload: T,
     event: String,
 }
 
+/// Errors that can occur during registering the callback in [ListenHandle::register]
 #[derive(Debug, thiserror::Error)]
 pub enum ListenError {
+    /// The promised given by [crate::bindings::listen] failed to resolve
     #[error("The promise to register the listener failed: {0:?}")]
     PromiseFailed(JsValue),
+    /// The returned value from the resolved [js_sys::Promise] retrieved
+    /// from [crate::bindings::listen] wasn't a function
     #[error("The function to detach the listener wasn't a function: {0:?}")]
     NotAFunction(JsValue),
 }
 
-pub struct ListenHandle {
+/// Handle which holds the unlisten function and the correlated callback
+pub struct ListenHandle<'s> {
+    /// The callback which is invoke for the registered event
     pub closure: Option<Closure<dyn Fn(JsValue)>>,
+    event: &'s str,
     detach_fn: Function,
 }
 
-impl ListenHandle {
+impl<'s> ListenHandle<'s> {
+    /// Registers a given event with the correlation callback and returns a [ListenResult]
     pub async fn register<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
     where
         T: for<'de> Deserialize<'de> + Serialize,
@@ -42,18 +52,19 @@ impl ListenHandle {
             .map_err(ListenError::PromiseFailed)?
             .dyn_into::<Function>()
             .map_err(ListenError::NotAFunction)?;
+        let closure = Some(closure);
 
-        Ok(ListenHandle::new(closure, detach_fn))
-    }
-
-    pub fn new(closure: Closure<dyn Fn(JsValue)>, detach_fn: Function) -> Self {
-        Self {
-            closure: Some(closure),
+        Ok(ListenHandle {
+            event,
+            closure,
             detach_fn,
-        }
+        })
     }
 
+    /// Detaches the callback from the registered event
     pub fn detach_listen(self) {
+        log::info!("Detaching {}", self.event);
+
         self.detach_fn
             .apply(&JsValue::null(), &js_sys::Array::new())
             .unwrap();

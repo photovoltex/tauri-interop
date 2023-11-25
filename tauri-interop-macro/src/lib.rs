@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+//! The macros use by `tauri_interop` to generate dynamic code depending on the target
+
 use std::{collections::BTreeSet, sync::Mutex};
 
 use convert_case::{Case, Casing};
@@ -11,6 +14,7 @@ use syn::{
 #[cfg(feature = "listen")]
 use syn::ItemStruct;
 
+/// Conditionally adds [macro@listen_to] or [macro@emit] to a struct
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
 pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
@@ -24,6 +28,10 @@ pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
+/// Generates an `emit` function for the given struct with a
+/// correlation enum for emitting a single field of the struct.
+///
+/// Used for host code generation.
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
 pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
@@ -98,6 +106,10 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
+/// Generates `listen_to_<field>` functions for the given
+/// struct for the correlating host code.
+///
+/// Used for wasm code generation
 #[cfg(feature = "listen")]
 #[proc_macro_attribute]
 pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
@@ -131,7 +143,7 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
             let fn_name = format_ident!("listen_to_{fn_ident}");
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                pub async fn #fn_name(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult {
+                pub async fn #fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
                     ::tauri_interop::listen::ListenHandle::register(stringify!(#field_ident), callback).await
                 }
             }
@@ -156,17 +168,19 @@ const ARGUMENT_LIFETIME: &str = "'arg_lifetime";
 const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
 
 /// really cheap filter for TAURI_TYPES
+///
 /// didn't figure out a way to only include tauri:: Structs/Enums and
 /// for now all ident name like the above TAURI_TYPES are filtered
 fn is_tauri_type(segment: &PathSegment) -> bool {
     TAURI_TYPES.contains(&segment.ident.to_string().as_str())
 }
 
+/// simple filter for determining if the given path is a [Result]
 fn is_result(segment: &PathSegment) -> bool {
     segment.ident.to_string().as_str() == "Result"
 }
 
-/// wasm command
+/// Generates the wasm counterpart to a defined `tauri::command`
 #[proc_macro_attribute]
 pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
     let ItemFn { attrs, sig, .. } = parse_macro_input!(stream as ItemFn);
@@ -186,8 +200,7 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
             (
                 Some(format_ident!("async")),
                 match ty.as_ref() {
-                    // fixme: if it's an single ident, catch isn't needed
-                    // this could probably be a problem later
+                    // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
                     Type::Path(path) => path.path.segments.iter().any(is_result),
                     others => panic!("no support for '{}'", others.to_token_stream()),
                 },
@@ -258,7 +271,7 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
-/// command which is expected to be used instead of tauri::command
+/// Conditionally adds [macro@binding] or `tauri::command` to a struct
 #[proc_macro_attribute]
 pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = syn::parse::<ItemFn>(stream).unwrap();
@@ -277,9 +290,10 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(command_macro.to_token_stream())
 }
 
-/// collects all commands annotated with the `conditional_command`s macro
+/// Collects all commands annotated with [macro@command] and
+/// provides these with a `get_handlers()` in the current namespace
 #[proc_macro]
-pub fn collect_handlers(_: TokenStream) -> TokenStream {
+pub fn collect_commands(_: TokenStream) -> TokenStream {
     let handler = HANDLER_LIST.lock().unwrap();
     let handler = handler
         .iter()
@@ -297,6 +311,7 @@ pub fn collect_handlers(_: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
+/// Simple macro to include given `use` only in host
 #[proc_macro_attribute]
 pub fn host_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
     let item_use = parse_macro_input!(stream as ItemUse);
@@ -309,6 +324,7 @@ pub fn host_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(command_macro.to_token_stream())
 }
 
+/// Simple macro to include given `use` only in wasm
 #[proc_macro_attribute]
 pub fn wasm_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
     let item_use = parse_macro_input!(stream as ItemUse);

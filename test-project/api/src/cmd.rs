@@ -62,4 +62,4 @@ pub mod broken {
     }
 }
 
-tauri_interop::collect_handlers!();
+tauri_interop::collect_commands!();
