@@ -5,6 +5,7 @@ package.version = "1.0.0"
 package.keywords = [ "wasm", "tauri", "command", "event" ]
 package.authors = [ "photovoltex" ]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
+package.license = "MIT OR Apache-2.0"
 
 [package]
 edition.workspace = true
@@ -12,6 +13,7 @@ version.workspace = true
 keywords.workspace = true
 authors.workspace = true
 repository.workspace = true
+license.workspace = true
 
 name = "tauri-interop"
 description = "Easily connect your rust frontend and backend without writing duplicate code."
