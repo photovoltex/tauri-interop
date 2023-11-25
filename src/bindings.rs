@@ -1,5 +1,3 @@
-#[cfg(feature = "listen")]
-use js_sys::Promise;
 use wasm_bindgen::prelude::*;
 
 #[cfg(target_family = "wasm")]
@@ -16,5 +14,5 @@ extern "C" {
 
     #[cfg(feature = "listen")]
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
-    pub fn listen(event: &str, closure: &Closure<dyn Fn(JsValue)>) -> Promise;
+    pub fn listen(event: &str, closure: &Closure<dyn Fn(JsValue)>) -> js_sys::Promise;
 }

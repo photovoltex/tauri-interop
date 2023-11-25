@@ -1,11 +1,11 @@
 use std::{collections::BTreeSet, sync::Mutex};
 
 use convert_case::{Case, Casing};
-use proc_macro::{TokenStream, Span};
+use proc_macro::{Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse, Pat,
-    PathSegment, ReturnType, Signature, Type, Lifetime, LifetimeParam,
+    parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse,
+    Lifetime, LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type,
 };
 
 #[cfg(feature = "listen")]
@@ -57,12 +57,14 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
     let mapped_variants = variants
         .iter()
         .map(|(field_ident, variant_ident)| {
-            // todo: had an thought, where we could replace this duplicate code with an enum... look later into plz :3
             quote! {
                 #name::#variant_ident => {
-                    let (struct_ident, field_ident) = (stringify!(#struct_ident), stringify!(#field_ident));
-                    log::trace!("{struct_ident} emitted [{field_ident}] via provided handle");
-                    handle.emit_all(field_ident, self.#field_ident.clone())
+                    log::trace!(
+                        "{} emitted [{}] via provided handle",
+                        stringify!(#struct_ident),
+                        stringify!(#field_ident),
+                    );
+                    handle.emit_all(stringify!(#field_ident), self.#field_ident.clone())
                 }
             }
         })
@@ -200,9 +202,12 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
         .filter_map(|mut fn_inputs| {
             if let FnArg::Typed(ref mut typed) = fn_inputs {
                 match typed.ty.as_mut() {
-                    Type::Path(path) if path.path.segments.iter().any(is_tauri_type) => return None,
+                    Type::Path(path) if path.path.segments.iter().any(is_tauri_type) => {
+                        return None
+                    }
                     Type::Reference(reference) => {
-                        reference.lifetime = Some(Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into()));
+                        reference.lifetime =
+                            Some(Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into()));
                         requires_lifetime_constrain = true;
                     }
                     _ => {}
@@ -217,30 +222,22 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
         })
         .collect::<Punctuated<FnArg, Comma>>();
 
-    let args_ident = format_ident!("{}Args", ident.to_string().to_case(Case::Pascal));
-
-    let invoke = if need_catch {
-        quote! {
-            ::tauri_interop::bindings::invoke_catch(stringify!(#ident), args).await
-                .map(|value| ::serde_wasm_bindgen::from_value(value).expect("ok: conversion error"))
-                .map_err(|value| ::serde_wasm_bindgen::from_value(value).expect("err: conversion error"))
-        }
-    } else if async_ident.is_some() {
-        quote! {
-            let value = ::tauri_interop::bindings::async_invoke(stringify!(#ident), args).await;
-            ::serde_wasm_bindgen::from_value(value).expect("conversion error")
-        }
-    } else {
-        quote! {
-            ::tauri_interop::bindings::invoke(stringify!(#ident), args);
-        }
-    };
-
     if requires_lifetime_constrain {
         let lt = Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into());
-        generics.params.push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
+        generics
+            .params
+            .push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
     }
 
+    let invoke = if need_catch {
+        quote!(::tauri_interop::command::invoke_catch(stringify!(#ident), args).await)
+    } else if async_ident.is_some() {
+        quote!(::tauri_interop::command::async_invoke(stringify!(#ident), args).await)
+    } else {
+        quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);)
+    };
+
+    let args_ident = format_ident!("{}Args", ident.to_string().to_case(Case::Pascal));
     let stream = quote! {
         #[derive(::serde::Serialize, ::serde::Deserialize)]
         struct #args_ident #generics {

@@ -1,14 +1,18 @@
 # Tauri-Interop
-> self is excluded by default (doesn't bring any benefits due to tauri::command not being able to be used in a impl/trait)
+> Connect your rust front- and backend together
 
-## TODO:
-- should have a async and no async option (each with a catch option)
+The basic idea is it, to defined a strongly typed api between your front- and backend. Due to compiling to different targets with the same crate, we strongly rely on the usage of `#[cfg(target_family = "")]` internally
 
 ## Basic usage:
+Definition for both tauri supported triplet and wasm:
 ```rs
-// provides required tauri wasm bindings (has to be called from root)
-tauri_interop::init!();
+#[tauri_interop::conditional_command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
 ```
+
+Usage in the tauri supported triplet is as usual. On the wasm side you can use your commands like they were build natively.
 
 ### Commands
 > notice: internally the arg name is converted to Camel (see 

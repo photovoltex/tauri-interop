@@ -22,7 +22,12 @@ pub fn invoke_with_return(window: tauri::Window) -> String {
 
 #[tauri_interop::command]
 pub fn invoke_with_return_vec() -> Vec<i32> {
-    vec![ 69, 420 ]
+    vec![69, 420]
+}
+
+#[tauri_interop::command]
+pub fn result_test() -> Result<i32, String> {
+    Ok(69)
 }
 
 #[tauri_interop::command]
