@@ -26,7 +26,7 @@ Using `tauri_interop::command` does two things:
 
 The defined command above can then be used in wasm as below. Due to receiving data from 
 tauri via a promise, the command response has to be awaited.
-```
+```ignore
 let greetings = greet("frontend").await;
 ```
 
@@ -46,20 +46,20 @@ which are used depending on the `target_family`
   - `tauri_interop::emit` is used otherwise
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
-```
+```ignore
 let test = Test {
     foo: "foo".into(),
     bar: 69
 };
 
-// where `handle` is `tauri::AppHandle`
+// where `handle` is of type `tauri::AppHandle`
 test.emit(&handle, TestEmit::Foo);
 ```
 
 the above emitted value can then be received in wasm as:
-```
+```ignore
 // Test::listen_to_<field>
-let listen_handle = Test::listen_to_foo(|foo| /* use received foo here */)
+let listen_handle = Test::listen_to_foo(|foo| { /* use received foo here */ })
 ```
 
 ## Known Issues:
