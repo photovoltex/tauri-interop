@@ -10,7 +10,7 @@ What this crate tries to achieve:
 
 ### Command (Frontend => Backend Communication)
 Definition for both tauri supported triplet and wasm:
-```
+```rust
 #[tauri_interop::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -26,13 +26,14 @@ Using `tauri_interop::command` does two things:
 
 The defined command above can then be used in wasm as below. Due to receiving data from 
 tauri via a promise, the command response has to be awaited.
-```ignore
+<!-- compile will fail due to requiring wasm as target -->
+```compile_fail
 let greetings = greet("frontend").await;
 ```
 
 ### Event (Backend => Frontend Communication)
 Definition for both tauri supported triplet and wasm:
-```
+```rust
 #[tauri_interop::emit_or_listen]
 pub struct Test {
     pub foo: String,
@@ -46,7 +47,8 @@ which are used depending on the `target_family`
   - `tauri_interop::emit` is used otherwise
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
-```ignore
+<!-- compile will fail due to requiring wasm as target -->
+```compile_fail
 let test = Test {
     foo: "foo".into(),
     bar: 69
@@ -57,7 +59,8 @@ test.emit(&handle, TestEmit::Foo);
 ```
 
 the above emitted value can then be received in wasm as:
-```ignore
+<!-- compile will fail due to requiring wasm as target -->
+```compile_fail
 // Test::listen_to_<field>
 let listen_handle = Test::listen_to_foo(|foo| { /* use received foo here */ })
 ```
