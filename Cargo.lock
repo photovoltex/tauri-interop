@@ -1085,9 +1085,9 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
-version = "0.14.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
+checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
 name = "heck"
@@ -1258,7 +1258,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.2",
+ "hashbrown 0.14.3",
  "serde",
 ]
 
@@ -2681,14 +2681,14 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "js-sys",
  "log",
  "serde",
  "serde-wasm-bindgen",
  "tauri",
- "tauri-interop-macro 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tauri-interop-macro 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -2696,7 +2696,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop-macro"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
@@ -2706,9 +2706,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop-macro"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5485b632aa70c8b9dcb310a8ed8fde8a7afbd76faf9d755e0b3d6d10e21b0aa2"
+checksum = "44df5fe9cdb7b534376495c366d63fc6d24ba0581b4a64b2ced8199a9c0d7b11"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
