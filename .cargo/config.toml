@@ -1,3 +1,11 @@
 [build]
+# this feature would allow to ignore certain doctest on certain targets
+# due to dev-dependencies are included in both targets we can't use this yet
+rustdocflags = ["-Z", "unstable-options", "--enable-per-target-ignores"]
 # uncommented when checking wasm code on correctnes and reload rust-analyzer
 # target = "wasm32-unknown-unknown"
+
+# only works if cargo install wasm-bindgen-cli --vers "X.Y.Z"
+# where "X.Y.Z" => currently used (see Cargo.toml) wasm_bindgen version
+[target.wasm32-unknown-unknown]
+runner = 'wasm-bindgen-test-runner'
