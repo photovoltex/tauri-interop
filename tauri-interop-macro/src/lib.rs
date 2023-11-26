@@ -1,6 +1,8 @@
 #![warn(missing_docs)]
 //! The macros use by `tauri_interop` to generate dynamic code depending on the target
 
+#[cfg(feature = "listen")]
+use std::fmt::Display;
 use std::{collections::BTreeSet, sync::Mutex};
 
 use convert_case::{Case, Casing};
@@ -26,6 +28,16 @@ pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(stream.to_token_stream())
+}
+
+/// function to build the same unique event name for wasm and host triplet
+#[cfg(feature = "listen")]
+fn get_event_name<S, F>(struct_name: &S, field_name: &F) -> String
+where
+    S: Display,
+    F: Display,
+{
+    format!("{struct_name}::{field_name}")
 }
 
 /// Generates an `emit` function for the given struct with a
@@ -57,7 +69,7 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
             let field_ident = field.ident.as_ref().expect("handled before");
             let variation = field_ident.to_string().to_case(Case::Pascal);
 
-            (format_ident!("{field_ident}"), format_ident!("{variation}"), &field.ty)
+            (field_ident, format_ident!("{variation}"), &field.ty)
         })
         .collect::<Vec<_>>();
 
@@ -74,6 +86,8 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
                 }
             });
 
+            let event_name = get_event_name(struct_ident, field_ident);
+
             quote! {
                 #name::#variant_ident => {
                     log::trace!(
@@ -81,7 +95,7 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
                         stringify!(#struct_ident),
                         stringify!(#field_ident),
                     );
-                    handle.emit_all(stringify!(#field_ident), self.#field_ident.clone())
+                    handle.emit_all(#event_name, self.#field_ident.clone())
                 }
             }
         })
@@ -152,10 +166,13 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                 .clone();
             let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
             let fn_name = format_ident!("listen_to_{fn_ident}");
+
+            let event_name = get_event_name(struct_ident, &field_ident);
+
             quote! {
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
                 pub async fn #fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
-                    ::tauri_interop::listen::ListenHandle::register(stringify!(#field_ident), callback).await
+                    ::tauri_interop::listen::ListenHandle::register(#event_name, callback).await
                 }
             }
         }).collect::<Vec<_>>();
@@ -272,7 +289,7 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
         pub #async_ident fn #ident #generics (#wasm_inputs) #variadic #output
         {
             let args = #args_ident { #args_inputs };
-            let args = serde_wasm_bindgen::to_value(&args)
+            let args = ::serde_wasm_bindgen::to_value(&args)
                 .expect("serialized arguments");
 
             #invoke
@@ -315,7 +332,7 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
         #[cfg(not(target_family = "wasm"))]
         /// the all mighty handler collector
         pub fn get_handlers() -> impl Fn(tauri::Invoke) {
-            tauri::generate_handler![ #handler ]
+            ::tauri::generate_handler![ #handler ]
         }
     };
 

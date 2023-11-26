@@ -63,7 +63,7 @@ impl<'s> ListenHandle<'s> {
 
     /// Detaches the callback from the registered event
     pub fn detach_listen(self) {
-        log::info!("Detaching {}", self.event);
+        log::trace!("Detaching listener for {}", self.event);
 
         self.detach_fn
             .apply(&JsValue::null(), &js_sys::Array::new())
