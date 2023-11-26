@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_names)]
+
 #![feature(iter_intersperse)]
 
 pub mod cmd;

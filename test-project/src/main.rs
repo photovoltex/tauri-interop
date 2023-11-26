@@ -2,7 +2,7 @@ use api::model::TestState;
 use gloo_timers::callback::Timeout;
 
 fn main() {
-    console_log::init_with_level(log::Level::Debug).expect("no errors during logger init");
+    console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
     console_error_panic_hook::set_once();
 
     api::cmd::empty_invoke();
@@ -12,10 +12,6 @@ fn main() {
     });
 
     wasm_bindgen_futures::spawn_local(async move {
-        let handle_echo = TestState::listen_to_echo(|echo| log::info!("echo: {echo}"))
-            .await
-            .unwrap();
-
         let handle_foo = TestState::listen_to_foo(|echo| log::info!("foo: {echo}"))
             .await
             .unwrap();
@@ -31,7 +27,6 @@ fn main() {
         // it can be fixed with `handle.closure.take().unwrap().forget()`
         // see the `Closure::forget` docs, why this isn't the recommended way
         Timeout::new(2000, move || {
-            handle_echo.detach_listen();
             handle_foo.detach_listen();
             handle_bar.detach_listen();
         })

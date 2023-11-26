@@ -32,16 +32,13 @@ pub fn result_test() -> Result<i32, String> {
 
 #[tauri_interop::command]
 pub fn emit(handle: tauri::AppHandle) {
-    log::info!("echo cmd received");
+    log::info!("emit cmd received");
 
-    let test_state = TestState {
-        echo: String::from("value"),
-        foo: 420,
-        bar: false,
-    };
+    let mut test_state = TestState::default();
+    test_state.update_foo(&handle, "update from backend".into()).unwrap();
 
-    test_state.emit(&handle, TestStateEmit::Echo).unwrap();
-    test_state.emit(&handle, TestStateEmit::Foo).unwrap();
+    test_state.emit(&handle, TestStateEmit::Bar).unwrap();
+    test_state.bar = true;
     test_state.emit(&handle, TestStateEmit::Bar).unwrap();
 }
 

@@ -57,14 +57,23 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
             let field_ident = field.ident.as_ref().expect("handled before");
             let variation = field_ident.to_string().to_case(Case::Pascal);
 
-            (format_ident!("{field_ident}"), format_ident!("{variation}"))
+            (format_ident!("{field_ident}"), format_ident!("{variation}"), &field.ty)
         })
         .collect::<Vec<_>>();
 
     let struct_ident = &stream_struct.ident;
+    let mut updaters = Vec::new();
     let mapped_variants = variants
         .iter()
-        .map(|(field_ident, variant_ident)| {
+        .map(|(field_ident, variant_ident, ty)| {
+            let update = format_ident!("update_{}", field_ident);
+            updaters.push(quote!{
+                pub fn #update(&mut self, handle: &tauri::AppHandle, #field_ident: #ty) -> Result<(), tauri::Error> {
+                    self.#field_ident = #field_ident;
+                    self.emit(handle, #name::#variant_ident)
+                }
+            });
+
             quote! {
                 #name::#variant_ident => {
                     log::trace!(
@@ -80,7 +89,7 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
 
     let variants = variants
         .into_iter()
-        .map(|(_, variation)| variation)
+        .map(|(_, variation, _)| variation)
         .collect::<Vec<_>>();
 
     let stream = quote! {
@@ -92,6 +101,8 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
         #stream_struct
 
         impl #struct_ident {
+            #( #updaters )*
+
             #[must_use]
             pub fn emit(&self, handle: &::tauri::AppHandle, field: #name) -> Result<(), tauri::Error> {
                 use tauri::Manager;
