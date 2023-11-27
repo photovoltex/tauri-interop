@@ -55,11 +55,9 @@ impl<'s> ListenHandle<'s> {
             callback(payload.payload)
         });
 
-        let ignore = crate::bindings::listen(event, &closure);
-        let detach_fn = wasm_bindgen_futures::JsFuture::from(ignore)
-            .await
+        let detach_fn = crate::bindings::listen(event, &closure).await
             .map_err(ListenError::PromiseFailed)?
-            .dyn_into::<Function>()
+            .dyn_into()
             .map_err(ListenError::NotAFunction)?;
         let closure = Some(closure);
 
