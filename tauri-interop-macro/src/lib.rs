@@ -91,9 +91,9 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
             quote! {
                 #name::#variant_ident => {
                     log::trace!(
-                        "{} emitted [{}] via provided handle",
+                        "Emitted event [{}::{}]",
                         stringify!(#struct_ident),
-                        stringify!(#field_ident),
+                        stringify!(#variant_ident),
                     );
                     handle.emit_all(#event_name, self.#field_ident.clone())
                 }
@@ -164,14 +164,27 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                 .as_ref()
                 .expect("handled before")
                 .clone();
-            let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
-            let fn_name = format_ident!("listen_to_{fn_ident}");
 
+            let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
             let event_name = get_event_name(struct_ident, &field_ident);
 
+            let leptos = cfg!(feature = "leptos").then(|| {
+                let use_fn_name = format_ident!("use_{fn_ident}");
+                quote! {
+                    #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
+                    pub fn #use_fn_name(initial_value: #ty) -> (::leptos::ReadSignal<#ty>, ::leptos::WriteSignal<#ty>) {
+                        ::tauri_interop::listen::ListenHandle::use_register(#event_name, initial_value)
+                    }
+                }
+            });
+
+            let listen_to_fn_name = format_ident!("listen_to_{fn_ident}");
+
             quote! {
+                #leptos
+
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                pub async fn #fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
+                pub async fn #listen_to_fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
                     ::tauri_interop::listen::ListenHandle::register(#event_name, callback).await
                 }
             }
