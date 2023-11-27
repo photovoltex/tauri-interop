@@ -30,6 +30,10 @@ pub enum ListenError {
 /// Handle which holds the unlisten function and the correlated callback
 pub struct ListenHandle<'s> {
     /// The callback which is invoke for the registered event
+    ///
+    /// The callback will get detached, when the handle is dropped. Alternatively it can
+    /// also be given to the js runtime (see [Closure] `into_js_value`/`forget`). This isn't
+    /// recommended because this will leak memory by default.
     pub closure: Option<Closure<dyn Fn(JsValue)>>,
     event: &'s str,
     detach_fn: Function,

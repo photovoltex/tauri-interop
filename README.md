@@ -170,3 +170,6 @@ let listen_handle = Test::listen_to_foo(|foo| { /* use received foo here */ })
 - arguments used in `tauri::command` beginning with `_` aren't supported yet
   - due to [tauri internally converting the argument name](https://tauri.app/v1/guides/features/command#passing-arguments), 
     which results in losing the _ at the beginning
+- feature: leptos
+  - sometimes a closure is accessed after being dropped
+  - that is probably a race condition where the unlisten function doesn't detach the callback fast enough
