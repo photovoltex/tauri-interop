@@ -7,6 +7,11 @@ use std::sync::RwLock;
 pub fn empty_invoke() {}
 
 #[tauri_interop::command]
+pub async fn await_heavy_computing() {
+    std::thread::sleep(std::time::Duration::from_millis(5000))
+}
+
+#[tauri_interop::command]
 fn greet(name_to_greet: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name_to_greet)
 }

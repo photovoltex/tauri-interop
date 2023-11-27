@@ -12,13 +12,14 @@ What this crate tries to achieve:
 
 ## Basic usage:
 
-
 > **Disclaimer**:
 >
 > Some examples in this documentation can't be executed with doctests due to
 > required wasm target and tauri modified environment (see [withGlobalTauri](https://tauri.app/v1/api/config/#buildconfig.withglobaltauri))
 
 ### Command (Frontend => Backend Communication)
+> For more examples see [cmd.rs](./test-project/api/src/cmd.rs) in test-project
+
 Definition for both tauri supported triplet and wasm:
 ```rust , ignore-wasm32-unknown-unknown
 #[tauri_interop::command]
@@ -59,6 +60,46 @@ fn main() {
         let greetings = greet("frontend").await;
         log::info!("{greetings}");
     });
+}
+```
+
+#### Command representation Host/Wasm
+
+- technically all commands need to be of type `Result<T, E>`
+  - where E is a error that the command isn't defined, if not explicitly redefined via the return type
+  - this error will show up in the web console, so there shouldn't be a problem ignoring it
+- all arguments with type "State", "AppHandle" and "Window" are removed automatically
+> the current implementation relies on the name of the type and can not separate between a 
+> tauri::State and a self defined "State" struct
+- asynchron commands are values as is see [async-commands](https://tauri.app/v1/guides/features/command#async-commands) for a detail explanation
+
+```rust , ignore-wasm32-unknown-unknown
+// let _: () = trigger_something();
+#[tauri_interop::command]
+fn trigger_something(name: &str) {
+    print!("triggers something, but doesn't need to wait for it")
+}
+
+// let value: String = wait_for_sync_execution("value").await;
+#[tauri_interop::command]
+fn wait_for_sync_execution(value: &str) -> String {
+    format!("Has to wait that the backend completes the computation and returns the {value}", value)
+}
+
+// let result: Result<String, String> = asynchrone_execution(true).await;
+#[tauri_interop::command]
+async fn asynchrone_execution(change: bool) -> Result<String, String> {
+    if change {
+        Ok("asynchrone execution requires result definition".into())
+    } else {
+        Err("and ".into())
+    }
+}
+
+// let _wait_for_completion: () = asynchrone_execution(true).await;
+#[tauri_interop::command]
+async fn heavy_computation() {
+  std::thread::sleep(std::time::Duration::from_millis(5000))
 }
 ```
 

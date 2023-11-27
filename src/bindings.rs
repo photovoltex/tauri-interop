@@ -14,5 +14,8 @@ extern "C" {
 
     #[cfg(feature = "listen")]
     #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "event"])]
-    pub async fn listen(event: &str, closure: &Closure<dyn Fn(JsValue)>) -> Result<JsValue, JsValue>;
+    pub async fn listen(
+        event: &str,
+        closure: &Closure<dyn Fn(JsValue)>,
+    ) -> Result<JsValue, JsValue>;
 }

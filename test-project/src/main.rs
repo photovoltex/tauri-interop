@@ -13,6 +13,9 @@ fn main() {
 
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);
+        
+        api::cmd::await_heavy_computing().await;
+        log::info!("heavy computing finished")
     });
 
     wasm_bindgen_futures::spawn_local(async move {

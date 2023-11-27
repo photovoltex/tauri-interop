@@ -55,7 +55,8 @@ impl<'s> ListenHandle<'s> {
             callback(payload.payload)
         });
 
-        let detach_fn = crate::bindings::listen(event, &closure).await
+        let detach_fn = crate::bindings::listen(event, &closure)
+            .await
             .map_err(ListenError::PromiseFailed)?
             .dyn_into()
             .map_err(ListenError::NotAFunction)?;

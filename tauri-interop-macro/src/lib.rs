@@ -221,6 +221,14 @@ fn is_result(segment: &PathSegment) -> bool {
     segment.ident.to_string().as_str() == "Result"
 }
 
+#[derive(PartialEq)]
+enum Invoke {
+    Empty,
+    AsyncEmpty,
+    Async,
+    AsyncResult,
+}
+
 /// Generates the wasm counterpart to a defined `tauri::command`
 #[proc_macro_attribute]
 pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
@@ -232,21 +240,24 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
         inputs,
         variadic,
         output,
+        asyncness,
         ..
     } = sig;
 
-    let (async_ident, need_catch) = match &output {
-        ReturnType::Default => (None, false),
-        ReturnType::Type(_, ty) => {
-            (
-                Some(format_ident!("async")),
-                match ty.as_ref() {
-                    // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
-                    Type::Path(path) => path.path.segments.iter().any(is_result),
-                    others => panic!("no support for '{}'", others.to_token_stream()),
-                },
-            )
+    let invoke_type = match &output {
+        ReturnType::Default => {
+            if asyncness.is_some() {
+                Invoke::AsyncEmpty
+            } else {
+                Invoke::Empty
+            }
         }
+        ReturnType::Type(_, ty) => match ty.as_ref() {
+            // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
+            Type::Path(path) if path.path.segments.iter().any(is_result) => Invoke::AsyncResult,
+            Type::Path(_) => Invoke::Async,
+            others => panic!("no support for '{}'", others.to_token_stream()),
+        },
     };
 
     let mut requires_lifetime_constrain = false;
@@ -283,12 +294,15 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
             .push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
     }
 
-    let invoke = if need_catch {
-        quote!(::tauri_interop::command::invoke_catch(stringify!(#ident), args).await)
-    } else if async_ident.is_some() {
-        quote!(::tauri_interop::command::async_invoke(stringify!(#ident), args).await)
-    } else {
-        quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);)
+    let async_ident = (invoke_type.ne(&Invoke::Empty)).then_some(format_ident!("async"));
+    let invoke = match invoke_type {
+        Invoke::Empty => quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);),
+        Invoke::Async | Invoke::AsyncEmpty => {
+            quote!(::tauri_interop::command::async_invoke(stringify!(#ident), args).await)
+        }
+        Invoke::AsyncResult => {
+            quote!(::tauri_interop::command::invoke_catch(stringify!(#ident), args).await)
+        }
     };
 
     let args_ident = format_ident!("{}Args", ident.to_string().to_case(Case::Pascal));
