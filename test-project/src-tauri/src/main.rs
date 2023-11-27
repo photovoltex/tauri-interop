@@ -1,3 +1,6 @@
+use std::sync::RwLock;
+
+use api::model::TestState;
 use tauri::Manager;
 
 fn main() {
@@ -13,6 +16,9 @@ fn main() {
 
             // debugging: always open dev tools on launch
             main_window.open_devtools();
+
+            let test_state = RwLock::new(TestState::default());
+            app.manage(test_state);
 
             Ok(())
         })

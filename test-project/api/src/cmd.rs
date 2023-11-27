@@ -1,5 +1,7 @@
 #[tauri_interop::host_usage]
 use crate::model::{TestState, TestStateEmit};
+#[tauri_interop::host_usage]
+use std::sync::RwLock;
 
 #[tauri_interop::command]
 pub fn empty_invoke() {}
@@ -31,14 +33,18 @@ pub fn result_test() -> Result<i32, String> {
 }
 
 #[tauri_interop::command]
-pub fn emit(handle: tauri::AppHandle) {
+pub fn emit(test_state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
     log::info!("emit cmd received");
 
-    let mut test_state = TestState::default();
-    test_state.update_foo(&handle, "update from backend".into()).unwrap();
+    let mut test_state = test_state.write().unwrap();
 
-    test_state.emit(&handle, TestStateEmit::Bar).unwrap();
-    test_state.bar = true;
+    if test_state.bar {
+        test_state.update_foo(&handle, "bar".into()).unwrap();
+    } else {
+        test_state.update_foo(&handle, "foo".into()).unwrap();
+    }
+
+    test_state.bar = !test_state.bar;
     test_state.emit(&handle, TestStateEmit::Bar).unwrap();
 }
 

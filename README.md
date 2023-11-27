@@ -5,12 +5,18 @@
 ![License](https://img.shields.io/crates/l/tauri-interop.svg)
 
 What this crate tries to achieve:
-- generate a wasm-function from your defined `tauri::command` by using `tauri_interop::command` instead
-- collect all defined `tauri_interop::command` by invoking `tauri_interop::collect_commands!()` at the end of a file
-- a simple way to emit and listen to a state change from the backend using (requires the `listen` feature)
+- generate a equal wasm-function from your defined `tauri::command`
+- collect all defined `tauri::command`s without adding them manually
+- a simplified way to sending events from tauri and receiving them in the frontend
 
 
 ## Basic usage:
+
+
+> **Disclaimer**:
+>
+> Some examples in this documentation can't be executed with doctests due to
+> required wasm target and tauri modified environment (see [withGlobalTauri](https://tauri.app/v1/api/config/#buildconfig.withglobaltauri))
 
 ### Command (Frontend => Backend Communication)
 Definition for both tauri supported triplet and wasm:
@@ -40,8 +46,20 @@ Using `tauri_interop::command` does two things:
 The defined command above can then be used in wasm as below. Due to receiving data from 
 tauri via a promise, the command response has to be awaited.
 ```rust , ignore
-// this code is ignore due to required target wasm
-let greetings = greet("frontend").await;
+// for testing this code is ignore due to required wasm target and tauri environment
+#[tauri_interop::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+fn main() {
+    console_log::init_with_level(log::Level::Info).unwrap();
+
+    wasm_bindgen_futures::spawn_local(async move { 
+        let greetings = greet("frontend").await;
+        log::info!("{greetings}");
+    });
+}
 ```
 
 ### Event (Backend => Frontend Communication)
@@ -98,6 +116,12 @@ fn main() {
 the above emitted value can then be received in wasm as:
 ```rust , ignore
 // this code is ignore due to required target wasm
+#[tauri_interop::emit_or_listen]
+pub struct Test {
+    foo: String,
+    pub bar: bool,
+}
+
 let listen_handle = Test::listen_to_foo(|foo| { /* use received foo here */ })
 ```
 
