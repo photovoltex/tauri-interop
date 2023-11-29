@@ -82,7 +82,7 @@ fn trigger_something(name: &str) {
 // let value: String = wait_for_sync_execution("value").await;
 #[tauri_interop::command]
 fn wait_for_sync_execution(value: &str) -> String {
-    format!("Has to wait that the backend completes the computation and returns the {value}", value)
+    format!("Has to wait that the backend completes the computation and returns the {value}")
 }
 
 // let result: Result<String, String> = asynchrone_execution(true).await;

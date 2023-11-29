@@ -13,8 +13,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
+    - uses: actions/checkout@v4
+
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown,x86_64-unknown-linux-gnu
+
+    - name: install dependencies (ubuntu only)
+      if: matrix.platform == 'ubuntu-20.04'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y webkit2gtk-4.1 libxdo-dev libayatana-appindicator3-dev
+
+    - name: Run tests for crate
       run: cargo test --verbose
+
+    - name: Build test-project (wasm)
+      run: |
+        cd test-project
+        cargo build --verbose --target wasm32-unknown-unknown
+
+    - name: Build test-project (host)
+      run: |
+        cd api
+        cargo build --verbose --target x86_64-unknown-linux-gnu
