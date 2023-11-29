@@ -36,5 +36,5 @@ jobs:
 
     - name: Build test-project (host)
       run: |
-        cd api
+        cd test-project/api
         cargo build --target x86_64-unknown-linux-gnu
