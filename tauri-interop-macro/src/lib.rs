@@ -125,6 +125,12 @@ pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
                     #( #mapped_variants ),*
                 }
             }
+
+            pub fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), tauri::Error> {
+                #( self.emit(handle, #name::#variants)?; )*
+
+                Ok(())
+            }
         }
     };
 

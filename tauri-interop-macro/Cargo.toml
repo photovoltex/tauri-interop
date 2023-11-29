@@ -19,6 +19,6 @@ convert_case = "0.6.0"
 lazy_static = "1.4.0"
 
 [features]
-default = []
+default = [ "listen" ]
 listen = []
 leptos = []

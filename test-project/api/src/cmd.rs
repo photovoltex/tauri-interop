@@ -51,6 +51,8 @@ pub fn emit(test_state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandl
 
     test_state.bar = !test_state.bar;
     test_state.emit(&handle, TestStateEmit::Bar).unwrap();
+
+    test_state.emit_all(&handle).unwrap();
 }
 
 #[cfg(feature = "broken")]
