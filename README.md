@@ -47,7 +47,6 @@ Using `tauri_interop::command` does two things:
 The defined command above can then be used in wasm as below. Due to receiving data from 
 tauri via a promise, the command response has to be awaited.
 ```rust , ignore
-// for testing this code is ignore due to required wasm target and tauri environment
 #[tauri_interop::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -156,14 +155,32 @@ fn main() {
 
 the above emitted value can then be received in wasm as:
 ```rust , ignore
-// this code is ignore due to required target wasm
 #[tauri_interop::emit_or_listen]
 pub struct Test {
     foo: String,
     pub bar: bool,
 }
 
-let listen_handle = Test::listen_to_foo(|foo| { /* use received foo here */ })
+let listen_handle: ListenHandle<'_> = Test::listen_to_foo(|foo| { /* use received foo here */ }).await;
+```
+
+The `liste_handle` contains the provided closure and the "unlisten" method. It has to be hold in scope as long 
+as the event should be received. Dropping it will automatically detach the closure from the event. See 
+[cmd.rs](./test-project/api/src/cmd.rs) for other example how it could be used.
+
+#### Feature: leptos
+When the `leptos` feature is enabled it will add additional `use_<field>` methods on the provided struct.
+These methods take care of the required initial asynchron call to register the listener and will hold the
+handle in scope as long as the component is rendered.
+
+```rust , ignore
+#[tauri_interop::emit_or_listen]
+pub struct Test {
+    foo: String,
+    pub bar: bool,
+}
+
+let (foo: leptos::ReadSignal<String>, set_foo: leptos::WriteSignal<String>) = Test::use_foo(String::default());
 ```
 
 ## Known Issues:
