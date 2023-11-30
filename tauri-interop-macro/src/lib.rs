@@ -356,7 +356,7 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
     let handler = HANDLER_LIST.lock().unwrap();
-    let handler = handler
+    let to_generated_handler = handler
         .iter()
         .map(|s| format_ident!("{s}"))
         .collect::<Punctuated<Ident, Comma>>();
@@ -365,7 +365,10 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
         #[cfg(not(target_family = "wasm"))]
         /// the all mighty handler collector
         pub fn get_handlers() -> impl Fn(tauri::Invoke) {
-            ::tauri::generate_handler![ #handler ]
+            let handlers = vec! [ #( #handler ),* ];
+            log::debug!("Registering following commands to tauri: {handlers:#?}");
+
+            ::tauri::generate_handler![ #to_generated_handler ]
         }
     };
 
