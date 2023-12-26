@@ -40,5 +40,6 @@ tauri = "1.5.2"
 
 [features]
 default = [ "listen" ]
-listen = [ "tauri-interop-macro/listen" ]
-leptos = [ "dep:leptos", "tauri-interop-macro/leptos" ]
+wasm    = []
+listen  = [ "tauri-interop-macro/listen" ]
+leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]

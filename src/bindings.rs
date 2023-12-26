@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_name = "invoke", js_namespace = ["window", "__TAURI__", "tauri"])]
