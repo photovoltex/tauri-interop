@@ -168,7 +168,11 @@ pub struct Test {
     pub bar: bool,
 }
 
-let listen_handle: ListenHandle<'_> = Test::listen_to_foo(|foo| { /* use received foo here */ }).await;
+fn main() {
+  use tauri_interop::event::listen::Listen;
+
+  let _listen_handle: ListenHandle<'_> = Test::listen_to::<test::Foo>(|foo| { /* use received foo: String here */ }).await;
+}
 ```
 
 The `liste_handle` contains the provided closure and the "unlisten" method. It has to be hold in scope as long 
@@ -187,7 +191,11 @@ pub struct Test {
     pub bar: bool,
 }
 
-let (foo: leptos::ReadSignal<String>, set_foo: leptos::WriteSignal<String>) = Test::use_foo(String::default());
+fn main() {
+  use tauri_interop::event::listen::Listen;
+
+  let (foo: leptos::ReadSignal<String>, set_foo: leptos::WriteSignal<String>) = Test::use_field::<test::Foo>(String::default());
+}
 ```
 
 ## Known Issues:
