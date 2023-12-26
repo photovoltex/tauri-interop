@@ -20,8 +20,8 @@ description = "Easily connect your rust frontend and backend without writing dup
 readme = "README.md"
 
 [dependencies]
-tauri-interop-macro = { path = "./tauri-interop-macro" }
-# tauri-interop-macro = "1.2.0"
+# tauri-interop-macro = { path = "./tauri-interop-macro" }
+tauri-interop-macro = "1.3.0"
 
 js-sys = "0.3.65"
 serde = { version = "1.0.193", features = ["derive"] }
