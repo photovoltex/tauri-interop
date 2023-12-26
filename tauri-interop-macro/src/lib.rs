@@ -102,11 +102,11 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let stream = quote! {
-        use tauri_interop::emit::{Emit, EmitField, EmitFields};
+        use tauri_interop::event::emit::{Emit, EmitField, EmitFields};
 
         pub mod #mod_name {
             use super::#struct_name;
-            use tauri_interop::emit::{Emit, EmitField, EmitFields};
+            use tauri_interop::event::emit::{Emit, EmitField, EmitFields};
 
             #[derive(Debug)]
             pub enum #fields_name {
@@ -150,14 +150,6 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
 }
 
 /// Generates an default `Field` implementation for the given struct.
-///
-/// ## Example
-/// ```
-/// #[derive(Field)]
-/// struct Foo {
-///     bar: usize
-/// }
-/// ```
 ///
 /// Used for host code generation.
 #[cfg(feature = "event")]
@@ -251,7 +243,7 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                 quote! {
                     #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
                     pub fn #use_fn_name(initial_value: #ty) -> (::leptos::ReadSignal<#ty>, ::leptos::WriteSignal<#ty>) {
-                        ::tauri_interop::listen::ListenHandle::use_register(#event_name, initial_value)
+                        ::tauri_interop::event::listen::ListenHandle::use_register(#event_name, initial_value)
                     }
                 }
             });
@@ -262,8 +254,8 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                 #leptos
 
                 #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                pub async fn #listen_to_fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
-                    ::tauri_interop::listen::ListenHandle::register(#event_name, callback).await
+                pub async fn #listen_to_fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::event::listen::ListenResult<'s> {
+                    ::tauri_interop::event::listen::ListenHandle::register(#event_name, callback).await
                 }
             }
         }).collect::<Vec<_>>();
