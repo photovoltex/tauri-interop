@@ -50,11 +50,15 @@ pub fn emit(state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
     if state.bar {
         state.update::<test_state::Bar>(&handle, false).unwrap();
     } else {
-        state.update::<test_state::Foo>(&handle, "foo".into()).unwrap();
+        state
+            .update::<test_state::Foo>(&handle, "foo".into())
+            .unwrap();
     }
 
     state.bar = !state.bar;
-    state.emit(&handle, <TestState as Emit>::Fields::Bar).unwrap();
+    state
+        .emit(&handle, <TestState as Emit>::Fields::Bar)
+        .unwrap();
 
     state.emit_all(&handle).unwrap();
 }

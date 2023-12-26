@@ -9,7 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro::{Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, FnArg, Ident,
+    parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, DeriveInput, FnArg, Ident,
     ItemFn, ItemUse, Lifetime, LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type,
 };
 
@@ -22,7 +22,7 @@ use syn::ItemStruct;
 pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
     let stream = quote! {
-        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
+        #[cfg_attr(target_family = "wasm", derive(tauri_interop::Listen))]
         #[cfg_attr(not(target_family = "wasm"), derive(tauri_interop::Emit))]
         #stream_struct
     };
@@ -93,10 +93,11 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
 
             quote! {
                 #[allow(dead_code)]
-                #[derive(::tauri_interop::Field)]
-                pub struct #field_name {
-                    #[parent(#struct_name)] #field_ident: #field_ty
-                }
+                #[derive(::tauri_interop::EmitField)]
+                #[parent(#struct_name)]
+                #[name(#field_ident)]
+                #[ty(#field_ty)]
+                pub struct #field_name;
             }
         })
         .collect::<Vec<_>>();
@@ -149,51 +150,54 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
-/// Generates an default `Field` implementation for the given struct.
-///
-/// Used for host code generation.
-#[cfg(feature = "event")]
-#[proc_macro_derive(Field, attributes(parent))]
-pub fn derive_field(stream: TokenStream) -> TokenStream {
-    let derive_input = syn::parse_macro_input!(stream as DeriveInput);
-    let struct_data = match derive_input.data {
-        Data::Struct(data) => data,
-        others => {
-            let data = match others {
-                Data::Enum(_) => "Enum",
-                Data::Union(_) => "Union",
-                _ => "unexpected data enum variation",
-            };
+struct FieldValues {
+    pub parent: Ident,
+    pub name: Option<Ident>,
+    pub ty: Type,
+}
 
-            panic!("Expected Struct, got {data}")
-        }
-    };
-
-    if struct_data.fields.is_empty() || struct_data.fields.len() > 1 {
-        panic!("Only Structs with one type are supported")
-    }
-
-    let struct_field = struct_data.fields.iter().next().unwrap();
-
-    let field_parent = struct_field
-        .attrs
+fn get_field_values(attrs: Vec<Attribute>) -> FieldValues {
+    let parent = attrs
         .iter()
         .find(|a| a.path().is_ident("parent"))
         .expect("expected parent attribute")
-        .parse_args::<Ident>()
+        .parse_args()
         .unwrap();
 
-    let field_ty = &struct_field.ty;
-    let field_ident = struct_field.ident.as_ref().unwrap();
+    let name = attrs
+        .iter()
+        .find(|a| a.path().is_ident("name"))
+        .and_then(|name| name.parse_args().ok());
+
+    let ty = attrs
+        .iter()
+        .find(|a| a.path().is_ident("ty"))
+        .expect("expected ty attribute")
+        .parse_args()
+        .unwrap();
+
+    FieldValues { parent, name, ty }
+}
+
+/// Generates an default `EmitField` implementation for the given struct.
+///
+/// Used for host code generation.
+#[cfg(feature = "event")]
+#[proc_macro_derive(EmitField, attributes(parent, name, ty))]
+pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
+    let derive_input = syn::parse_macro_input!(stream as DeriveInput);
+
+    let FieldValues { parent, name, ty } = get_field_values(derive_input.attrs);
+    let name = name.expect("name attribute was expected");
     let struct_name = &derive_input.ident;
 
     let stream = quote! {
-        impl EmitField<#field_parent> for #struct_name {
-            type Type = #field_ty;
+        impl EmitField<#parent> for #struct_name {
+            type Type = #ty;
 
-            fn update(s: &mut #field_parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
-                s.#field_ident = v;
-                s.emit(handle, <#field_parent as Emit>::Fields::#struct_name)
+            fn update(s: &mut #parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
+                s.#name = v;
+                s.emit(handle, <#parent as Emit>::Fields::#struct_name)
             }
         }
     };
@@ -206,8 +210,8 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
 ///
 /// Used for wasm code generation
 #[cfg(feature = "event")]
-#[proc_macro_attribute]
-pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
+#[proc_macro_derive(Listen)]
+pub fn derive_listen(stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
 
     if stream_struct.fields.is_empty() {
@@ -224,7 +228,10 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
 
     let struct_ident = &stream_struct.ident;
 
-    let mapped_variants = stream_struct
+    let mod_name = struct_ident.to_string().to_case(Case::Snake);
+    let mod_name = format_ident!("{mod_name}");
+
+    let struct_field_fields = stream_struct
         .fields
         .iter()
         .map(|field| {
@@ -233,38 +240,50 @@ pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
                 .ident
                 .as_ref()
                 .expect("handled before")
-                .clone();
-
-            let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
-            let event_name = get_event_name(struct_ident, &field_ident);
-
-            let leptos = cfg!(feature = "leptos").then(|| {
-                let use_fn_name = format_ident!("use_{fn_ident}");
-                quote! {
-                    #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                    pub fn #use_fn_name(initial_value: #ty) -> (::leptos::ReadSignal<#ty>, ::leptos::WriteSignal<#ty>) {
-                        ::tauri_interop::event::listen::ListenHandle::use_register(#event_name, initial_value)
-                    }
-                }
-            });
-
-            let listen_to_fn_name = format_ident!("listen_to_{fn_ident}");
+                .to_string()
+                .to_case(Case::Pascal);
+            let field_ident = format_ident!("{field_ident}");
 
             quote! {
-                #leptos
-
-                #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                pub async fn #listen_to_fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::event::listen::ListenResult<'s> {
-                    ::tauri_interop::event::listen::ListenHandle::register(#event_name, callback).await
-                }
+                #[derive(::tauri_interop::ListenField)]
+                #[parent(#struct_ident)]
+                #[ty(#ty)]
+                pub struct #field_ident;
             }
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     let stream = quote! {
-        #stream_struct
+        pub mod #mod_name {
+            use super::#struct_ident;
+            use ::tauri_interop::event::listen::ListenField;
 
-        impl #struct_ident {
-            #( #mapped_variants )*
+            #( #struct_field_fields )*
+        }
+
+        impl ::tauri_interop::event::listen::Listen for #struct_ident {}
+    };
+
+    TokenStream::from(stream.to_token_stream())
+}
+
+/// Generates an default `ListenField` implementation for the given struct.
+///
+/// Used for wasm code generation.
+#[cfg(feature = "event")]
+#[proc_macro_derive(ListenField, attributes(parent, ty))]
+pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
+    let derive_input = syn::parse_macro_input!(stream as DeriveInput);
+
+    let FieldValues { parent, ty, .. } = get_field_values(derive_input.attrs);
+    let struct_name = &derive_input.ident;
+
+    let event_name = get_event_name(&parent, &struct_name);
+
+    let stream = quote! {
+        impl ListenField<#parent> for #struct_name {
+            type Type = #ty;
+            const EVENT_NAME: &'static str = #event_name;
         }
     };
 

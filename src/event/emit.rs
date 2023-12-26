@@ -1,17 +1,17 @@
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::{AppHandle, Error, Wry};
 
 /// Trait intended to mark an enum as usable [Emit::Fields]
 pub trait EmitFields: Debug {}
 
-/// Trait defining a [Field] to a related struct implementing [Emit] with the related [EmitField::Type]
+/// Trait defining a [EmitField] to a related struct implementing [Emit] with the related [EmitField::Type]
 pub trait EmitField<S>
 where
     S: Emit,
     <S as Emit>::Fields: EmitFields,
-    <Self as EmitField<S>>::Type: Serialize + for<'de> Deserialize<'de> + Clone,
+    <Self as EmitField<S>>::Type: Serialize + Clone,
 {
     /// The type of the field
     type Type;
