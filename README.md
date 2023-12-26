@@ -104,19 +104,22 @@ async fn heavy_computation() {
 
 ### Event (Backend => Frontend Communication)
 Definition for both tauri supported triplet and wasm:
-```rust , ignore-wasm32-unknown-unknown
+```rust
 #[derive(Default)]
 #[tauri_interop::emit_or_listen]
 pub struct Test {
     foo: String,
     pub bar: bool,
 }
+
+// when main isn't defined, `super::Test` results in an error
+fn main() {}
 ```
 
 Using `tauri_interop::emit_or_listen` does provides the command with two macros,
 which are used depending on the `target_family`
   - `tauri_interop::listen_to` is used when compiling to `wasm`
-  - `tauri_interop::emit` is used otherwise
+  - derive trait `tauri_interop::Emit` is used otherwise
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
 ```rust , ignore-wasm32-unknown-unknown
@@ -127,14 +130,18 @@ pub struct Test {
     pub bar: bool,
 }
 
+// via `tauri_interop::Emit` a new modul named after the struct (as snake_case) 
+// is created where the struct Test is defined, here it creates module `test`
+// in this module the Fields and Field are generated
+
 // one context where `tauri::AppHandle` can be obtained
 #[tauri_interop::command]
 fn emit_bar(handle: tauri::AppHandle) {
     let mut test = Test::default();
 
-    test.emit(&handle, TestEmit::Bar); // emits `false`
+    test.emit(&handle, test::TestEmit::Bar); // emits `false`
     test.bar = true;
-    test.emit(&handle, TestEmit::Bar); // emits updated value `true`
+    test.emit(&handle, <Test as Emit>::Fields::Bar); // emits updated value `true`
 }
 
 // a different context where `tauri::AppHandle` can be obtained
@@ -146,7 +153,7 @@ fn main() {
       let mut test = Test::default();
 
       // to emit and update an field an update function for each field is generated
-      test.update_foo(&handle, "Bar".into()); // emits '"Bar"'
+      test.update::<test::Foo>(&handle, "Bar".into()); // emits '"Bar"'
 
       Ok(())
     });
