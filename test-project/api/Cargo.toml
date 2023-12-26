@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tauri-interop = { path = "../..", features = [ "listen" ]}
+tauri-interop = { path = "../..", default-features = false, features = [ "event" ]}
 
 # common
 log = "0.4.20"
@@ -22,7 +22,7 @@ leptos = { version = "0.5.2", features = ["csr"], optional = true }
 
 [features]
 default = [ "host" ]
-host = ["dep:tauri"]
-wasm = ["dep:js-sys", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
-leptos = [ "dep:leptos", "tauri-interop/leptos" ]
-broken = []
+host =    [ "dep:tauri", "tauri-interop/tauri" ]
+wasm =    [ "dep:js-sys", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
+leptos =  [ "dep:leptos", "tauri-interop/leptos" ]
+broken =  []

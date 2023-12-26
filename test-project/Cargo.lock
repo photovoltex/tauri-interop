@@ -3674,6 +3674,7 @@ dependencies = [
  "log",
  "serde",
  "serde-wasm-bindgen 0.6.1",
+ "tauri",
  "tauri-interop-macro",
  "thiserror",
  "wasm-bindgen",
@@ -3687,6 +3688,7 @@ dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
  "quote",
+ "serde",
  "syn 2.0.39",
 ]
 

@@ -3549,6 +3549,7 @@ dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
  "quote",
+ "serde",
  "syn 2.0.39",
 ]
 

@@ -1,5 +1,5 @@
 #[tauri_interop::host_usage]
-use crate::model::{TestState, TestStateEmit};
+use crate::model::TestState;
 #[tauri_interop::host_usage]
 use std::sync::RwLock;
 
@@ -38,21 +38,25 @@ pub fn result_test() -> Result<i32, String> {
 }
 
 #[tauri_interop::command]
-pub fn emit(test_state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
+pub fn emit(state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
+    use tauri_interop::emit::Emit;
+    // newly generated mod
+    use crate::model::test_state;
+
     log::info!("emit cmd received");
 
-    let mut test_state = test_state.write().unwrap();
+    let mut state = state.write().unwrap();
 
-    if test_state.bar {
-        test_state.update_foo(&handle, "bar".into()).unwrap();
+    if state.bar {
+        state.update::<test_state::Bar>(&handle, false).unwrap();
     } else {
-        test_state.update_foo(&handle, "foo".into()).unwrap();
+        state.update::<test_state::Foo>(&handle, "foo".into()).unwrap();
     }
 
-    test_state.bar = !test_state.bar;
-    test_state.emit(&handle, TestStateEmit::Bar).unwrap();
+    state.bar = !state.bar;
+    state.emit(&handle, <TestState as Emit>::Fields::Bar).unwrap();
 
-    test_state.emit_all(&handle).unwrap();
+    state.emit_all(&handle).unwrap();
 }
 
 #[cfg(feature = "broken")]

@@ -31,6 +31,8 @@ thiserror = "1.0.50"
 serde-wasm-bindgen = "0.6.1"
 log = "0.4.20"
 
+tauri = { version = "1.5.2", default-features = false, features = ["wry"], optional = true }
+
 # leptos feature
 leptos = { version = "0.5.2", optional = true }
 
@@ -39,6 +41,8 @@ leptos = { version = "0.5.2", optional = true }
 tauri = "1.5.2"
 
 [features]
-default = [ "listen" ]
-listen = [ "tauri-interop-macro/listen" ]
-leptos = [ "dep:leptos", "tauri-interop-macro/leptos" ]
+default = [ "event", "tauri" ]
+wasm    = []
+event   = [ "tauri-interop-macro/event" ]
+tauri   = [ "dep:tauri" ]
+leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]
