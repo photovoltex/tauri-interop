@@ -22,7 +22,7 @@ leptos = { version = "0.5.2", features = ["csr"], optional = true }
 
 [features]
 default = [ "host" ]
-host =    [ "dep:tauri", "tauri-interop/tauri" ]
-wasm =    [ "dep:js-sys", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
-leptos =  [ "dep:leptos", "tauri-interop/leptos" ]
-broken =  []
+host    = [ "dep:tauri" ]
+wasm    = [ "dep:js-sys", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
+leptos  = [ "dep:leptos", "tauri-interop/leptos" ]
+broken  = []

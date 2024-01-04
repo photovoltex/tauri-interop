@@ -31,18 +31,24 @@ thiserror = "1.0.50"
 serde-wasm-bindgen = "0.6.1"
 log = "0.4.20"
 
-tauri = { version = "1.5.2", default-features = false, features = ["wry"], optional = true }
-
 # leptos feature
 leptos = { version = "0.5.2", optional = true }
 
-[dev-dependencies]
-# comment when target is set to wasm in .cargo/config.toml
+# only include if not wasm
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tauri = { version = "1.5.2", default-features = false, features = ["wry"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+tauri-interop-macro = { path = "./tauri-interop-macro", features = [ "wasm" ] }
+# tauri-interop-macro = { version = "1.2.0", features = [ "wasm" ] }
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tauri = "1.5.2"
 
 [features]
-default = [ "event", "tauri" ]
-wasm    = []
+# todo: remove default feature before publish
+default = [ "event" ]
 event   = [ "tauri-interop-macro/event" ]
-tauri   = [ "dep:tauri" ]
 leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]
+# used to generated the missing documentation only generated for "target_family = wasm"
+wasm    = []
