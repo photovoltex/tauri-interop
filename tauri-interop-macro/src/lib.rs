@@ -85,13 +85,13 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let stream = quote! {
-        use tauri_interop::event::emit::{Emit, EmitField};
+        use tauri_interop::event::{Field, emit::Emit};
 
         pub mod #mod_name {
             use super::#struct_name;
-            use tauri_interop::event::emit::{Emit, EmitField};
+            use tauri_interop::event::{Field, emit::Emit};
 
-            // to each field a defined struct tuple is provided
+            // to each field a defined struct tuple is generated
             #( #struct_field_fields )*
         }
 
@@ -104,14 +104,14 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
                 Ok(())
             }
 
-            fn emit<F: EmitField<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
+            fn emit<F: Field<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
             where
                 Self: Sized
             {
                 F::emit(self, handle)
             }
 
-            fn update<F: EmitField<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
+            fn update<F: Field<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
             where
                 Self: Sized
             {
@@ -167,7 +167,7 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     let event_name = get_event_name(&parent, struct_name);
 
     let stream = quote! {
-        impl EmitField<#parent> for #struct_name {
+        impl Field<#parent> for #struct_name {
             type Type = #ty;
 
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
@@ -243,7 +243,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         pub mod #mod_name {
             use super::#struct_ident;
-            use ::tauri_interop::event::listen::ListenField;
+            use ::tauri_interop::event::Field;
 
             #( #struct_field_fields )*
         }
@@ -268,7 +268,7 @@ pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
     let event_name = get_event_name(&parent, &struct_name);
 
     let stream = quote! {
-        impl ListenField<#parent> for #struct_name {
+        impl Field<#parent> for #struct_name {
             type Type = #ty;
             const EVENT_NAME: &'static str = #event_name;
         }

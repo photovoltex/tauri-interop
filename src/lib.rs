@@ -1,6 +1,8 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+#![feature(trait_alias)]
+
 /// wasm bindings for tauri's provided js functions (target: `wasm` or feat: `wasm`)
 #[cfg(any(target_family = "wasm", feature = "wasm"))]
 pub mod bindings;
