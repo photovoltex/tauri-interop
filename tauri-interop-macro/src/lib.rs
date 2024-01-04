@@ -16,18 +16,15 @@ use syn::{
 #[cfg(feature = "event")]
 use syn::ItemStruct;
 
-/// Conditionally adds [macro@listen_to] or [Emit] to a struct
+/// Conditionally adds [Listen] or [Emit] to a struct
 #[cfg(feature = "event")]
-#[proc_macro_attribute]
-pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
-    let stream = quote! {
-        #[cfg_attr(target_family = "wasm", derive(tauri_interop::Listen))]
-        #[cfg_attr(not(target_family = "wasm"), derive(tauri_interop::Emit))]
-        #stream_struct
-    };
-
-    TokenStream::from(stream.to_token_stream())
+#[proc_macro_derive(Event)]
+pub fn derive_event(stream: TokenStream) -> TokenStream {
+    if cfg!(feature = "wasm") {
+        derive_listen(stream)
+    } else {
+        derive_emit(stream)
+    }
 }
 
 /// function to build the same unique event name for wasm and host triplet
