@@ -105,8 +105,9 @@ async fn heavy_computation() {
 ### Event (Backend => Frontend Communication)
 Definition for both tauri supported triplet and wasm:
 ```rust
-#[derive(Default)]
-#[tauri_interop::emit_or_listen]
+use tauri_interop::Event;
+
+#[derive(Default, Event)]
 pub struct Test {
     foo: String,
     pub bar: bool,
@@ -123,8 +124,9 @@ which are used depending on the `target_family`
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
 ```rust , ignore-wasm32-unknown-unknown
-#[derive(Default)]
-#[tauri_interop::emit_or_listen]
+use tauri_interop::Event;
+
+#[derive(Default, Event)]
 pub struct Test {
     foo: String,
     pub bar: bool,

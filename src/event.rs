@@ -14,7 +14,7 @@ pub mod listen;
 /// Conditionally changes between [listen::Listen] and [emit::Emit]
 ///
 /// When compiled to "target_family = wasm" then following is true.
-/// ```
+/// ```ignore
 /// trait Parent = listen::Listen;
 /// ```
 #[cfg(not(target_family = "wasm"))]

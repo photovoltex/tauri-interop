@@ -1,7 +1,7 @@
 [workspace]
 members = [ "tauri-interop-macro" ]
 package.edition = "2021"
-package.version = "1.3.0"
+package.version = "2.0.0-dev"
 package.keywords = [ "wasm", "tauri", "command", "event", "leptos" ]
 package.authors = [ "photovoltex" ]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
@@ -20,8 +20,8 @@ description = "Easily connect your rust frontend and backend without writing dup
 readme = "README.md"
 
 [dependencies]
-# tauri-interop-macro = { path = "./tauri-interop-macro" }
-tauri-interop-macro = "1.3.0"
+tauri-interop-macro = { path = "./tauri-interop-macro" }
+#tauri-interop-macro = "2.0.0"
 
 js-sys = "0.3.65"
 serde = { version = "1.0.193", features = ["derive"] }
