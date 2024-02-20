@@ -40,7 +40,7 @@ where
     format!("{struct_name}::{field_name}")
 }
 
-/// Generates an default `Emit` implementation for the given struct with a
+/// Generates a default `Emit` implementation for the given struct with a
 /// correlation enum, mod and field-structs for emitting a single field of
 /// the struct.
 ///
@@ -155,7 +155,7 @@ fn get_field_values(attrs: Vec<Attribute>) -> FieldValues {
     FieldValues { parent, name, ty }
 }
 
-/// Generates an default `EmitField` implementation for the given struct.
+/// Generates a default `EmitField` implementation for the given struct.
 ///
 /// Used for host code generation.
 #[cfg(feature = "event")]
@@ -257,7 +257,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
-/// Generates an default `ListenField` implementation for the given struct.
+/// Generates a default `ListenField` implementation for the given struct.
 ///
 /// Used for wasm code generation.
 #[cfg(feature = "event")]
