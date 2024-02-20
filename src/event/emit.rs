@@ -1,38 +1,33 @@
-use std::fmt::Debug;
-
 use serde::Serialize;
 use tauri::{AppHandle, Error, Wry};
 
-/// Trait intended to mark an enum as usable [Emit::Fields]
-pub trait EmitFields: Debug {}
-
 /// Trait defining a [EmitField] to a related struct implementing [Emit] with the related [EmitField::Type]
-pub trait EmitField<S>
+pub trait EmitField<Parent>
 where
-    S: Emit,
-    <S as Emit>::Fields: EmitFields,
-    <Self as EmitField<S>>::Type: Serialize + Clone,
+    Parent: Emit,
+    <Self as EmitField<Parent>>::Type: Serialize + Clone,
 {
     /// The type of the field
     type Type;
 
-    /// Updates the related field and emit it's event
-    fn update(s: &mut S, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
+    /// Emits event of the related field with their value
+    fn emit(parent: &Parent, handle: &AppHandle<Wry>) -> Result<(), Error>;
+
+    /// Updates the related field and emits it
+    fn update(parent: &mut Parent, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
 }
 
 /// Trait that defines the available event emitting methods
-pub trait Emit
-where
-    <Self as Emit>::Fields: EmitFields,
-{
-    /// Fields that are used to emit an event
-    type Fields;
-
-    /// Emit a single field event
-    fn emit(&self, handle: &AppHandle<Wry>, field: Self::Fields) -> Result<(), Error>;
+pub trait Emit {
     /// Emit all field events
     fn emit_all(&self, handle: &AppHandle<Wry>) -> Result<(), Error>;
-    /// Emit and update a single field
+
+    /// Emit a single field event
+    fn emit<F: EmitField<Self>>(&self, handle: &AppHandle<Wry>) -> Result<(), Error>
+    where
+        Self: Sized;
+
+    /// Update a single field and emit it afterward
     fn update<F: EmitField<Self>>(
         &mut self,
         handle: &AppHandle<Wry>,

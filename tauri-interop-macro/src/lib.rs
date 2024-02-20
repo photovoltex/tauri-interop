@@ -63,10 +63,7 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
     let mod_name = struct_name.to_string().to_case(Case::Snake);
     let mod_name = format_ident!("{mod_name}");
 
-    let fields_name = format_ident!("{}Emit", struct_name);
-
-    let mut enum_arm_variation = vec![];
-    let mut fields_enum_variation = vec![];
+    let mut fields = vec![];
     let struct_field_fields = item_struct
         .fields
         .iter()
@@ -77,19 +74,7 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
             let field_name = format_ident!("{field_name}");
             let field_ty = &field.ty;
 
-            fields_enum_variation.push(field_name.clone());
-
-            let event_name = get_event_name(struct_name, field_ident);
-            enum_arm_variation.push(quote! {
-                #fields_name::#field_name => {
-                    log::trace!(
-                        "Emitted event [{}::{}]",
-                        stringify!(#struct_name),
-                        stringify!(#field_name),
-                    );
-                    handle.emit_all(#event_name, self.#field_ident.clone())
-                }
-            });
+            fields.push(field_name.clone());
 
             quote! {
                 #[allow(dead_code)]
@@ -103,39 +88,30 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let stream = quote! {
-        use tauri_interop::event::emit::{Emit, EmitField, EmitFields};
+        use tauri_interop::event::emit::{Emit, EmitField};
 
         pub mod #mod_name {
             use super::#struct_name;
-            use tauri_interop::event::emit::{Emit, EmitField, EmitFields};
-
-            #[derive(Debug)]
-            pub enum #fields_name {
-                #( #fields_enum_variation ),*
-            }
-
-            impl EmitFields for #fields_name {}
+            use tauri_interop::event::emit::{Emit, EmitField};
 
             // to each field a defined struct tuple is provided
             #( #struct_field_fields )*
         }
 
         impl Emit for #struct_name {
-            type Fields = #mod_name::#fields_name;
-
-            fn emit(&self, handle: &::tauri::AppHandle, field: Self::Fields) -> Result<(), ::tauri::Error> {
-                use tauri::Manager;
-                use #mod_name::#fields_name;
-
-                match field {
-                    #( #enum_arm_variation ),*
-                }
-            }
-
             fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
-                #( self.emit(handle, #mod_name::#fields_name::#fields_enum_variation)?; )*
+                use #mod_name::*;
+
+                #( #fields::emit(self, handle)?; )*
 
                 Ok(())
+            }
+
+            fn emit<F: EmitField<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
+            where
+                Self: Sized
+            {
+                F::emit(self, handle)
             }
 
             fn update<F: EmitField<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
@@ -191,13 +167,27 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     let name = name.expect("name attribute was expected");
     let struct_name = &derive_input.ident;
 
+    let event_name = get_event_name(&parent, struct_name);
+
     let stream = quote! {
         impl EmitField<#parent> for #struct_name {
             type Type = #ty;
 
-            fn update(s: &mut #parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
-                s.#name = v;
-                s.emit(handle, <#parent as Emit>::Fields::#struct_name)
+            fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
+                use tauri::Manager;
+
+                log::trace!(
+                    "Emitted event [{}::{}]",
+                    stringify!(#parent),
+                    stringify!(#struct_name),
+                );
+
+                handle.emit_all(#event_name, parent.#name.clone())
+            }
+
+            fn update(parent: &mut #parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
+                parent.#name = v;
+                Self::emit(parent, handle)
             }
         }
     };
@@ -383,7 +373,7 @@ pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
             .push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
     }
 
-    let async_ident = (invoke_type.ne(&Invoke::Empty)).then_some(format_ident!("async"));
+    let async_ident = invoke_type.ne(&Invoke::Empty).then_some(format_ident!("async"));
     let invoke = match invoke_type {
         Invoke::Empty => quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);),
         Invoke::Async | Invoke::AsyncEmpty => {

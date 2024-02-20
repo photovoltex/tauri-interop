@@ -70,7 +70,7 @@ fn main() {
 - all arguments with type "State", "AppHandle" and "Window" are removed automatically
 > the current implementation relies on the name of the type and can not separate between a 
 > tauri::State and a self defined "State" struct
-- asynchron commands are values as is see [async-commands](https://tauri.app/v1/guides/features/command#async-commands) for a detail explanation
+- asynchronous commands are values as is seen [async-commands](https://tauri.app/v1/guides/features/command#async-commands) for a detail explanation
 
 ```rust , ignore-wasm32-unknown-unknown
 // let _: () = trigger_something();
@@ -85,17 +85,17 @@ fn wait_for_sync_execution(value: &str) -> String {
     format!("Has to wait that the backend completes the computation and returns the {value}")
 }
 
-// let result: Result<String, String> = asynchrone_execution(true).await;
+// let result: Result<String, String> = asynchronous_execution(true).await;
 #[tauri_interop::command]
-async fn asynchrone_execution(change: bool) -> Result<String, String> {
+async fn asynchronous_execution(change: bool) -> Result<String, String> {
     if change {
-        Ok("asynchrone execution requires result definition".into())
+        Ok("asynchronous execution requires result definition".into())
     } else {
         Err("and ".into())
     }
 }
 
-// let _wait_for_completion: () = asynchrone_execution(true).await;
+// let _wait_for_completion: () = asynchronous_execution(true).await;
 #[tauri_interop::command]
 async fn heavy_computation() {
   std::thread::sleep(std::time::Duration::from_millis(5000))
@@ -130,18 +130,16 @@ pub struct Test {
     pub bar: bool,
 }
 
-// via `tauri_interop::Emit` a new modul named after the struct (as snake_case) 
+// via `tauri_interop::Emit` a new module named after the struct (as snake_case) 
 // is created where the struct Test is defined, here it creates module `test`
-// in this module the Fields and Field are generated
+// in this module the related Fields are generated
 
 // one context where `tauri::AppHandle` can be obtained
 #[tauri_interop::command]
 fn emit_bar(handle: tauri::AppHandle) {
-    let mut test = Test::default();
+    let mut t = Test::default();
 
-    test.emit(&handle, test::TestEmit::Bar); // emits `false`
-    test.bar = true;
-    test.emit(&handle, <Test as Emit>::Fields::Bar); // emits updated value `true`
+    t.emit::<test::Foo>(&handle); // emits the current state: `false`
 }
 
 // a different context where `tauri::AppHandle` can be obtained
@@ -150,10 +148,10 @@ fn main() {
     .setup(|app| {
       let handle: tauri::AppHandle = app.handle();
       
-      let mut test = Test::default();
+      let mut t = Test::default();
 
-      // to emit and update an field an update function for each field is generated
-      test.update::<test::Foo>(&handle, "Bar".into()); // emits '"Bar"'
+      // to emit and update a field an update function for each field is generated
+      t.update::<test::Foo>(&handle, "Bar".into()); // assigns "Bar" to t.foo and emits the same value
 
       Ok(())
     });
@@ -168,7 +166,7 @@ pub struct Test {
     pub bar: bool,
 }
 
-fn main() {
+async fn main() {
   use tauri_interop::event::listen::Listen;
 
   let _listen_handle: ListenHandle<'_> = Test::listen_to::<test::Foo>(|foo| { /* use received foo: String here */ }).await;

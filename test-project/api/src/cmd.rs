@@ -57,7 +57,7 @@ pub fn emit(state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
 
     state.bar = !state.bar;
     state
-        .emit(&handle, <TestState as Emit>::Fields::Bar)
+        .emit::<test_state::Foo>(&handle)
         .unwrap();
 
     state.emit_all(&handle).unwrap();
