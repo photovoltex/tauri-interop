@@ -43,8 +43,8 @@ fn prepare(stream_struct: ItemStruct) -> Event {
             let field_name = field_ident.to_string().to_case(Case::Pascal);
 
             EventField {
-                name: field_ident.clone(),
-                field: format_ident!("{field_name}"),
+                name: format_ident!("{field_name}"),
+                field: field_ident.clone(),
                 ty: field.ty.clone(),
             }
         })
