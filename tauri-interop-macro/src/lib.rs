@@ -77,8 +77,8 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
                 #[allow(dead_code)]
                 #[derive(::tauri_interop::EmitField)]
                 #[parent(#struct_name)]
-                #[name(#field_ident)]
-                #[ty(#field_ty)]
+                #[field_name(#field_ident)]
+                #[field_ty(#field_ty)]
                 pub struct #field_name;
             }
         })
@@ -139,12 +139,12 @@ fn get_field_values(attrs: Vec<Attribute>) -> FieldValues {
 
     let name = attrs
         .iter()
-        .find(|a| a.path().is_ident("name"))
+        .find(|a| a.path().is_ident("field_name"))
         .and_then(|name| name.parse_args().ok());
 
     let ty = attrs
         .iter()
-        .find(|a| a.path().is_ident("ty"))
+        .find(|a| a.path().is_ident("field_ty"))
         .expect("expected ty attribute")
         .parse_args()
         .unwrap();
@@ -156,7 +156,7 @@ fn get_field_values(attrs: Vec<Attribute>) -> FieldValues {
 ///
 /// Used for host code generation.
 #[cfg(feature = "event")]
-#[proc_macro_derive(EmitField, attributes(parent, name, ty))]
+#[proc_macro_derive(EmitField, attributes(parent, field_name, field_ty))]
 pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     let derive_input = syn::parse_macro_input!(stream as DeriveInput);
 
@@ -171,7 +171,7 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
             type Type = #ty;
 
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
-                use tauri::Manager;
+                use ::tauri::Manager;
 
                 log::trace!(
                     "Emitted event [{}::{}]",
@@ -234,7 +234,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
             quote! {
                 #[derive(::tauri_interop::ListenField)]
                 #[parent(#struct_ident)]
-                #[ty(#ty)]
+                #[field_ty(#ty)]
                 pub struct #field_ident;
             }
         })
@@ -258,7 +258,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
 ///
 /// Used for wasm code generation.
 #[cfg(feature = "event")]
-#[proc_macro_derive(ListenField, attributes(parent, ty))]
+#[proc_macro_derive(ListenField, attributes(parent, field_ty))]
 pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
     let derive_input = syn::parse_macro_input!(stream as DeriveInput);
 
