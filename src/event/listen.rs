@@ -5,6 +5,8 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 #[cfg(feature = "leptos")]
 use leptos::{ReadSignal, WriteSignal};
 
+use super::Field;
+
 /// The result type that is returned by [ListenHandle::register]
 pub type ListenResult<'s> = Result<ListenHandle<'s>, ListenError>;
 
@@ -110,5 +112,34 @@ impl<'s> ListenHandle<'s> {
         });
 
         (signal, set_signal)
+    }
+}
+
+
+/// Trait that defines the available listen methods
+pub trait Listen {
+    /// Registers an callback to a [Field]
+    ///
+    /// Default Implementation: see [ListenHandle::register]
+    fn listen_to<'r, F: Field<Self>>(
+        callback: impl Fn(F::Type) + 'static,
+    ) -> impl std::future::Future<Output = ListenResult<'r>>
+    where
+        Self: Sized + super::Parent,
+    {
+        ListenHandle::register(F::EVENT_NAME, callback)
+    }
+
+    /// Creates a signal to a [Field]
+    ///
+    /// Default Implementation: see [ListenHandle::use_register]
+    #[cfg(feature = "leptos")]
+    fn use_field<F: Field<Self>>(
+        initial: F::Type,
+    ) -> (ReadSignal<F::Type>, WriteSignal<F::Type>)
+    where
+        Self: Sized + super::Parent,
+    {
+        ListenHandle::use_register(F::EVENT_NAME, initial)
     }
 }

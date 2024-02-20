@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
 
-/// Wrapper for [crate::bindings::async_invoke], to return a
+/// Wrapper for [crate::bindings::async_invoke], to return an
 /// expected [Deserialize] object
 pub async fn async_invoke<T>(command: &str, args: JsValue) -> T
 where
@@ -11,7 +11,7 @@ where
     serde_wasm_bindgen::from_value(value).expect("conversion error")
 }
 
-/// Wrapper for [crate::bindings::invoke_catch], to return a
+/// Wrapper for [crate::bindings::invoke_catch], to return an
 /// expected [Result<T, E>] where T and E is [Deserialize]
 pub async fn invoke_catch<T, E>(command: &str, args: JsValue) -> Result<T, E>
 where

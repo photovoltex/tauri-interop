@@ -1,7 +1,7 @@
 [workspace]
 members = [ "tauri-interop-macro" ]
 package.edition = "2021"
-package.version = "1.3.0"
+package.version = "2.0.0-dev"
 package.keywords = [ "wasm", "tauri", "command", "event", "leptos" ]
 package.authors = [ "photovoltex" ]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
@@ -20,8 +20,8 @@ description = "Easily connect your rust frontend and backend without writing dup
 readme = "README.md"
 
 [dependencies]
-# tauri-interop-macro = { path = "./tauri-interop-macro" }
-tauri-interop-macro = "1.3.0"
+tauri-interop-macro = { path = "./tauri-interop-macro" }
+#tauri-interop-macro = "2.0.0"
 
 js-sys = "0.3.65"
 serde = { version = "1.0.193", features = ["derive"] }
@@ -34,12 +34,21 @@ log = "0.4.20"
 # leptos feature
 leptos = { version = "0.5.2", optional = true }
 
-[dev-dependencies]
-# comment when target is set to wasm in .cargo/config.toml
+# only include if not wasm
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tauri = { version = "1.5.2", default-features = false, features = ["wry"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+tauri-interop-macro = { path = "./tauri-interop-macro", features = [ "wasm" ] }
+# tauri-interop-macro = { version = "1.2.0", features = [ "wasm" ] }
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tauri = "1.5.2"
 
 [features]
-default = [ "listen" ]
-wasm    = []
-listen  = [ "tauri-interop-macro/listen" ]
+# todo: remove default feature before publish
+default = [ "event" ]
+event   = [ "tauri-interop-macro/event" ]
 leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]
+# used to generated the missing documentation only generated for "target_family = wasm"
+wasm    = []

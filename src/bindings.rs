@@ -11,7 +11,7 @@ extern "C" {
     #[wasm_bindgen(catch, js_name = "invoke", js_namespace = ["window", "__TAURI__", "tauri"])]
     pub async fn invoke_catch(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
 
-    #[cfg(feature = "listen")]
+    #[cfg(feature = "event")]
     #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "event"])]
     pub async fn listen(
         event: &str,

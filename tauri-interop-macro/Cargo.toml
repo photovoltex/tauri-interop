@@ -17,8 +17,13 @@ syn = { version = "2.0", features = [ "full" ]}
 quote = "1.0"
 convert_case = "0.6.0"
 lazy_static = "1.4.0"
+serde = "1.0.193"
+proc-macro2 = "1.0.75"
 
 [features]
-default = [ "listen" ]
-listen = []
-leptos = []
+# todo: remove default feature before publish
+default = [ "event" ]
+leptos  = [ "event" ]
+event   = []
+# feature to get info that context is wasm
+wasm    = []

@@ -1,15 +1,16 @@
+use tauri_interop::Event;
+
 #[allow(dead_code)]
-#[derive(Default)]
-#[tauri_interop::emit_or_listen]
+#[derive(Default, Event)]
 pub struct TestState {
     foo: String,
     pub bar: bool,
 }
 
 // /// not allowed
-// #[tauri_interop::emit_or_listen]
+// #[derive(Default, Event)]
 // pub struct StructTupleState(String);
 
 // /// not allowed
-// #[tauri_interop::emit_or_listen]
+// #[derive(Default, Event)]
 // pub struct PanicState {}

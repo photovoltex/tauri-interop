@@ -23,4 +23,4 @@ leptos = { version = "0.5.2", optional = true }
 
 [features]
 default = [ "leptos" ]
-leptos = ["dep:leptos", "api/leptos"]
+leptos = [ "dep:leptos", "api/leptos" ]

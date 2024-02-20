@@ -1,6 +1,7 @@
 #![allow(clippy::disallowed_names)]
 
-use api::model::TestState;
+use api::event::listen::Listen;
+use api::model::{test_state, TestState};
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]
 use leptos::{component, create_signal, view, IntoView};
@@ -13,13 +14,13 @@ fn main() {
 
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);
-        
+
         api::cmd::await_heavy_computing().await;
         log::info!("heavy computing finished")
     });
 
     wasm_bindgen_futures::spawn_local(async move {
-        let handle_bar = TestState::listen_to_bar(|echo| log::info!("bar: {echo}"))
+        let handle_bar = TestState::listen_to::<test_state::Bar>(|echo| log::info!("bar: {echo}"))
             .await
             .unwrap();
 
@@ -46,7 +47,7 @@ fn App() -> impl IntoView {
     let (bar, set_bar) = create_signal(false);
 
     leptos::spawn_local(async move {
-        let handle_bar = TestState::listen_to_bar(move |bar| set_bar.set(bar))
+        let handle_bar = TestState::listen_to::<test_state::Bar>(move |bar| set_bar.set(bar))
             .await
             .unwrap();
 
@@ -70,7 +71,7 @@ fn App() -> impl IntoView {
 fn Foo() -> impl IntoView {
     Timeout::new(2000, api::cmd::emit).forget();
 
-    let (foo, _set_foo) = TestState::use_foo("Test".into());
+    let (foo, _set_foo) = TestState::use_field::<test_state::Foo>("Test".into());
 
     view! { <h1>{foo}</h1> }
 }
