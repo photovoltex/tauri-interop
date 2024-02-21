@@ -1,37 +1,41 @@
-use crate::event::{Event, EventField, Field, FieldAttributes};
+use crate::event::{EventField, EventStruct, Field, FieldAttributes};
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, ItemStruct, DeriveInput};
+use syn::{parse_macro_input, DeriveInput, ItemStruct};
 
 pub fn derive(stream: TokenStream) -> TokenStream {
     let stream_struct = parse_macro_input!(stream as ItemStruct);
-    let Event {
-        ident,
+    let EventStruct {
+        name,
         mod_name,
         fields,
-    } = super::prepare(stream_struct);
+    } = super::prepare_event(stream_struct);
 
     let listen_fields = fields.iter().map(|field| {
-        let EventField { name, ty, .. } = field;
+        let EventField {
+            field_name,
+            parent_field_ty,
+            ..
+        } = field;
 
         quote! {
             #[allow(dead_code)]
             #[derive(::tauri_interop::ListenField)]
-            #[parent(#ident)]
-            #[field_ty(#ty)]
-            pub struct #name;
+            #[parent(#name)]
+            #[parent_field_ty(#parent_field_ty)]
+            pub struct #field_name;
         }
     });
 
     let stream = quote! {
         pub mod #mod_name {
-            use super::#ident;
+            use super::#name;
             use ::tauri_interop::event::Field;
 
             #( #listen_fields )*
         }
 
-        impl ::tauri_interop::event::listen::Listen for #ident {}
+        impl ::tauri_interop::event::listen::Listen for #name {}
     };
 
     TokenStream::from(stream.to_token_stream())
@@ -41,17 +45,21 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
     let derive_input = syn::parse_macro_input!(stream as DeriveInput);
 
     let Field {
-        ident,
+        name,
         attributes,
-        event,
+        event_name,
     } = super::prepare_field(derive_input);
 
-    let FieldAttributes { parent, ty, .. } = attributes;
+    let FieldAttributes {
+        parent,
+        parent_field_ty,
+        ..
+    } = attributes;
 
     let stream = quote! {
-        impl Field<#parent> for #ident {
-            type Type = #ty;
-            const EVENT_NAME: &'static str = #event;
+        impl Field<#parent> for #name {
+            type Type = #parent_field_ty;
+            const EVENT_NAME: &'static str = #event_name;
         }
     };
 

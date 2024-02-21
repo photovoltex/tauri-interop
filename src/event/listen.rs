@@ -115,7 +115,6 @@ impl<'s> ListenHandle<'s> {
     }
 }
 
-
 /// Trait that defines the available listen methods
 pub trait Listen {
     /// Registers an callback to a [Field]
@@ -134,9 +133,7 @@ pub trait Listen {
     ///
     /// Default Implementation: see [ListenHandle::use_register]
     #[cfg(feature = "leptos")]
-    fn use_field<F: Field<Self>>(
-        initial: F::Type,
-    ) -> (ReadSignal<F::Type>, WriteSignal<F::Type>)
+    fn use_field<F: Field<Self>>(initial: F::Type) -> (ReadSignal<F::Type>, WriteSignal<F::Type>)
     where
         Self: Sized + super::Parent,
     {

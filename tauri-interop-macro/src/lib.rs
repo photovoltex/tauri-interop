@@ -39,7 +39,7 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
 ///
 /// Used for host code generation.
 #[cfg(feature = "event")]
-#[proc_macro_derive(EmitField, attributes(parent, field_name, field_ty))]
+#[proc_macro_derive(EmitField, attributes(parent, parent_field_name, parent_field_ty))]
 pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     event::emit::derive_field(stream)
 }
@@ -58,7 +58,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
 ///
 /// Used for wasm code generation.
 #[cfg(feature = "event")]
-#[proc_macro_derive(ListenField, attributes(parent, field_ty))]
+#[proc_macro_derive(ListenField, attributes(parent, parent_field_ty))]
 pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
     event::listen::derive_field(stream)
 }

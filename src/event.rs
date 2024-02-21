@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 #[cfg(not(target_family = "wasm"))]
-use tauri::{AppHandle, Wry, Error};
+use tauri::{AppHandle, Error, Wry};
 
 /// traits for event emitting in the host code (feat: `tauri`)
 #[cfg(not(target_family = "wasm"))]
@@ -44,7 +44,7 @@ where
 
     #[cfg(not(target_family = "wasm"))]
     /// Updates the related field and emit its event
-    /// 
+    ///
     /// Only required for "target_family = wasm"
     fn update(s: &mut P, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
 }

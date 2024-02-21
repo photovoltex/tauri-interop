@@ -50,5 +50,5 @@ tauri = "1.5.2"
 default = [ "event" ]
 event   = [ "tauri-interop-macro/event" ]
 leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]
-# used to generated the missing documentation only generated for "target_family = wasm"
+# used to generate the missing documentation, otherwise it's only generated for "target_family = wasm"
 wasm    = []
