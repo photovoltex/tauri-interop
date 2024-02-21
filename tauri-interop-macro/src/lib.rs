@@ -1,17 +1,14 @@
 #![warn(missing_docs)]
 //! The macros use by `tauri_interop` to generate dynamic code depending on the target
 
+mod command;
 mod event;
 
 use std::{collections::BTreeSet, sync::Mutex};
 
-use convert_case::{Case, Casing};
-use proc_macro::{Span, TokenStream};
+use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse,
-    Lifetime, LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type,
-};
+use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse};
 
 /// Conditionally adds [Listen] or [Emit] to a struct
 #[cfg(feature = "event")]
@@ -63,136 +60,19 @@ pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
     event::listen::derive_field(stream)
 }
 
+/// Generates the wasm counterpart to a defined `tauri::command`
+#[proc_macro_attribute]
+pub fn binding(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
+    command::convert_to_binding(stream)
+}
+
 lazy_static::lazy_static! {
     static ref HANDLER_LIST: Mutex<BTreeSet<String>> = Mutex::new(Default::default());
 }
 
-const ARGUMENT_LIFETIME: &str = "'arg_lifetime";
-const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
-
-/// really cheap filter for TAURI_TYPES
-///
-/// didn't figure out a way to only include tauri:: Structs/Enums and
-/// for now all ident name like the above TAURI_TYPES are filtered
-fn is_tauri_type(segment: &PathSegment) -> bool {
-    TAURI_TYPES.contains(&segment.ident.to_string().as_str())
-}
-
-/// simple filter for determining if the given path is a [Result]
-fn is_result(segment: &PathSegment) -> bool {
-    segment.ident.to_string().as_str() == "Result"
-}
-
-#[derive(PartialEq)]
-enum Invoke {
-    Empty,
-    AsyncEmpty,
-    Async,
-    AsyncResult,
-}
-
-/// Generates the wasm counterpart to a defined `tauri::command`
+/// Conditionally adds `tauri_interop::binding` or `tauri::command` to a struct
 #[proc_macro_attribute]
-pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let ItemFn { attrs, sig, .. } = parse_macro_input!(stream as ItemFn);
-
-    let Signature {
-        ident,
-        mut generics,
-        inputs,
-        variadic,
-        output,
-        asyncness,
-        ..
-    } = sig;
-
-    let invoke_type = match &output {
-        ReturnType::Default => {
-            if asyncness.is_some() {
-                Invoke::AsyncEmpty
-            } else {
-                Invoke::Empty
-            }
-        }
-        ReturnType::Type(_, ty) => match ty.as_ref() {
-            // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
-            Type::Path(path) if path.path.segments.iter().any(is_result) => Invoke::AsyncResult,
-            Type::Path(_) => Invoke::Async,
-            others => panic!("no support for '{}'", others.to_token_stream()),
-        },
-    };
-
-    let mut requires_lifetime_constrain = false;
-    let mut args_inputs: Punctuated<Ident, Comma> = Punctuated::new();
-    let wasm_inputs = inputs
-        .into_iter()
-        .filter_map(|mut fn_inputs| {
-            if let FnArg::Typed(ref mut typed) = fn_inputs {
-                match typed.ty.as_mut() {
-                    Type::Path(path) if path.path.segments.iter().any(is_tauri_type) => {
-                        return None;
-                    }
-                    Type::Reference(reference) => {
-                        reference.lifetime =
-                            Some(Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into()));
-                        requires_lifetime_constrain = true;
-                    }
-                    _ => {}
-                }
-
-                if let Pat::Ident(ident) = typed.pat.as_ref() {
-                    args_inputs.push(ident.ident.clone());
-                    return Some(fn_inputs);
-                }
-            }
-            None
-        })
-        .collect::<Punctuated<FnArg, Comma>>();
-
-    if requires_lifetime_constrain {
-        let lt = Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into());
-        generics
-            .params
-            .push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
-    }
-
-    let async_ident = invoke_type
-        .ne(&Invoke::Empty)
-        .then_some(format_ident!("async"));
-    let invoke = match invoke_type {
-        Invoke::Empty => quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);),
-        Invoke::Async | Invoke::AsyncEmpty => {
-            quote!(::tauri_interop::command::async_invoke(stringify!(#ident), args).await)
-        }
-        Invoke::AsyncResult => {
-            quote!(::tauri_interop::command::invoke_catch(stringify!(#ident), args).await)
-        }
-    };
-
-    let args_ident = format_ident!("{}Args", ident.to_string().to_case(Case::Pascal));
-    let stream = quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize)]
-        struct #args_ident #generics {
-            #wasm_inputs
-        }
-
-        #( #attrs )*
-        pub #async_ident fn #ident #generics (#wasm_inputs) #variadic #output
-        {
-            let args = #args_ident { #args_inputs };
-            let args = ::serde_wasm_bindgen::to_value(&args)
-                .expect("serialized arguments");
-
-            #invoke
-        }
-    };
-
-    TokenStream::from(stream.to_token_stream())
-}
-
-/// Conditionally adds [macro@binding] or `tauri::command` to a struct
-#[proc_macro_attribute]
-pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
+pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = syn::parse::<ItemFn>(stream).unwrap();
 
     HANDLER_LIST
@@ -209,8 +89,10 @@ pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(command_macro.to_token_stream())
 }
 
-/// Collects all commands annotated with [macro@command] and
+/// Collects all commands annotated with `tauri_interop::command` and
 /// provides these with a `get_handlers()` in the current namespace
+///
+/// The provided function isn't available for wasm
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
     let handler = HANDLER_LIST.lock().unwrap();
