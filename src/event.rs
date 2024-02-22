@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 #[cfg(not(target_family = "wasm"))]
 use tauri::{AppHandle, Error, Wry};
 
@@ -19,6 +19,7 @@ pub mod listen;
 /// ```
 #[cfg(not(target_family = "wasm"))]
 pub trait Parent = emit::Emit;
+
 /// The trait which needs to be implemented for a [Field]
 ///
 /// Conditionally changes between [listen::Listen] and [emit::Emit]
@@ -29,7 +30,7 @@ pub trait Parent = listen::Listen;
 pub trait Field<P>
 where
     P: Parent,
-    <Self as Field<P>>::Type: Clone + Serialize + for<'de> Deserialize<'de>,
+    <Self as Field<P>>::Type: Clone + Serialize + DeserializeOwned,
 {
     /// The type of the field
     type Type;

@@ -1,5 +1,5 @@
 use js_sys::Function;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 #[cfg(feature = "leptos")]
@@ -51,9 +51,9 @@ impl<'s> ListenHandle {
     /// Registers a given event with the correlation callback and returns a [ListenResult]
     pub async fn register<T>(event: &'static str, callback: impl Fn(T) + 'static) -> ListenResult
     where
-        T: for<'de> Deserialize<'de>,
+        T: DeserializeOwned,
     {
-        let closure = wasm_bindgen::prelude::Closure::new(move |value| {
+        let closure = Closure::new(move |value| {
             let payload: Payload<T> = serde_wasm_bindgen::from_value(value)
                 .map_err(|why| log::error!("{why:?}"))
                 .expect("passed value from backend didn't serialized correctly");
@@ -91,7 +91,7 @@ impl<'s> ListenHandle {
     #[cfg(feature = "leptos")]
     pub fn use_register<T>(event: &'static str, initial_value: T) -> (ReadSignal<T>, WriteSignal<T>)
     where
-        T: for<'de> Deserialize<'de>,
+        T: DeserializeOwned,
     {
         use leptos::SignalSet;
 
