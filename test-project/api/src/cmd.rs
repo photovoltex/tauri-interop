@@ -2,6 +2,8 @@
 use crate::model::TestState;
 #[tauri_interop::host_usage]
 use std::sync::RwLock;
+#[tauri_interop::host_usage]
+use tauri_interop::command::{TauriAppHandle, TauriState};
 
 #[tauri_interop::command]
 pub fn empty_invoke() {}
@@ -38,7 +40,7 @@ pub fn result_test() -> Result<i32, String> {
 }
 
 #[tauri_interop::command]
-pub fn emit(state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
+pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
     use tauri_interop::event::emit::Emit;
     // newly generated mod
     use crate::model::test_state;

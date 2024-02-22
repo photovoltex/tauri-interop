@@ -4,12 +4,14 @@ use leptos::{ReadSignal, WriteSignal};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
+use crate::command::bindings::listen;
+
 use super::Field;
 
 /// The result type that is returned by [ListenHandle::register]
 pub type ListenResult = Result<ListenHandle, ListenError>;
 
-/// The generic payload received from [crate::bindings::listen] used for deserialization
+/// The generic payload received from [listen] used for deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Payload<T> {
     payload: T,
@@ -19,11 +21,11 @@ pub struct Payload<T> {
 /// Errors that can occur during registering the callback in [ListenHandle::register]
 #[derive(Debug, thiserror::Error)]
 pub enum ListenError {
-    /// The promised given by [crate::bindings::listen] failed to resolve
+    /// The promised given by [listen] failed to resolve
     #[error("The promise to register the listener failed: {0:?}")]
     PromiseFailed(JsValue),
     /// The returned value from the resolved [js_sys::Promise] retrieved
-    /// from [crate::bindings::listen] wasn't a function
+    /// from [listen] wasn't a function
     #[error("The function to detach the listener wasn't a function: {0:?}")]
     NotAFunction(JsValue),
 }
@@ -60,7 +62,7 @@ impl ListenHandle {
             callback(payload.payload)
         });
 
-        let detach_fn = crate::bindings::listen(event, &closure)
+        let detach_fn = listen(event, &closure)
             .await
             .map_err(ListenError::PromiseFailed)?
             .dyn_into()

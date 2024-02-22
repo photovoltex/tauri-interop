@@ -68,9 +68,10 @@ fn main() {
   - technically all commands need to be of type `Result<T, E>` because there is always the possibility of a command getting called, that isn't registered in the context of tauri
     - when using `tauri_interop::collect_commands!()` this possibility is near fully removed
     - for convenience, we ignore that possibility, and even if the error occurs it will be logged into the console
-- all arguments with type "State", "AppHandle" and "Window" are removed automatically
-> the current implementation relies on the name of the type and can not separate between a 
-> tauri::State and a self defined "State" struct
+- all arguments with `tauri` in their name (case-insensitive) are removed automatically as argument in a defined command
+  - the crate itself provides type aliases for usable tauri types in a command
+- most return types are automatically determined
+  - when using a return type with `Result` in the name, the function will also return a result
 
 ```rust , ignore-wasm32-unknown-unknown
 // let _: () = trigger_something();
