@@ -1,14 +1,17 @@
 #![warn(missing_docs)]
 //! The macros use by `tauri_interop` to generate dynamic code depending on the target
 
-mod command;
-mod event;
-
+use proc_macro::TokenStream;
 use std::{collections::BTreeSet, sync::Mutex};
 
-use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse};
+use syn::{
+    parse::Parser, parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse,
+    Token,
+};
+
+mod command;
+mod event;
 
 /// Conditionally adds [Listen] or [Emit] to a struct
 #[cfg(feature = "event")]
@@ -73,7 +76,7 @@ lazy_static::lazy_static! {
 /// Conditionally adds `tauri_interop::binding` or `tauri::command` to a struct
 #[proc_macro_attribute]
 pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
-    let fn_item = syn::parse::<ItemFn>(stream).unwrap();
+    let fn_item = parse_macro_input!(stream as ItemFn);
 
     HANDLER_LIST
         .lock()
@@ -115,28 +118,34 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
     TokenStream::from(stream.to_token_stream())
 }
 
-/// Simple macro to include given `use` only in host
-#[proc_macro_attribute]
-pub fn host_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let item_use = parse_macro_input!(stream as ItemUse);
-
-    let command_macro = quote! {
-        #[cfg(not(target_family = "wasm"))]
-        #item_use
-    };
-
-    TokenStream::from(command_macro.to_token_stream())
+fn collect_uses(stream: TokenStream) -> Vec<ItemUse> {
+    Punctuated::<ItemUse, Token![|]>::parse_terminated
+        .parse2(stream.into())
+        .unwrap()
+        .into_iter()
+        .collect::<Vec<_>>()
 }
 
-/// Simple macro to include given `use` only in wasm
-#[proc_macro_attribute]
-pub fn wasm_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let item_use = parse_macro_input!(stream as ItemUse);
+/// Simple macro to include multiple imports (seperated by `|`) not in wasm
+#[proc_macro]
+pub fn host_usage(stream: TokenStream) -> TokenStream {
+    let uses = collect_uses(stream);
+    TokenStream::from(quote! {
+        #(
+            #[cfg(not(target_family = "wasm"))]
+            #uses
+        )*
+    })
+}
 
-    let command_macro = quote! {
-        #[cfg(target_family = "wasm")]
-        #item_use
-    };
-
-    TokenStream::from(command_macro.to_token_stream())
+/// Simple macro to include multiple imports (seperated by `|`) only in wasm
+#[proc_macro]
+pub fn wasm_usage(stream: TokenStream) -> TokenStream {
+    let uses = collect_uses(stream);
+    TokenStream::from(quote! {
+        #(
+            #[cfg(target_family = "wasm")]
+            #uses
+        )*
+    })
 }

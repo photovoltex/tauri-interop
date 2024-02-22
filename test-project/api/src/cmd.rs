@@ -1,7 +1,10 @@
-#[tauri_interop::host_usage]
-use crate::model::TestState;
-#[tauri_interop::host_usage]
-use std::sync::RwLock;
+tauri_interop::host_usage! {
+    // usually u don't need to exclude the crates inside the api,
+    // but when the type is removed because it is wrapped in a State,
+    // it produced a warning... and we don't like warnings, so we exclude it
+    use crate::model::TestState;
+    | use std::sync::RwLock;
+}
 
 #[tauri_interop::command]
 pub fn empty_invoke() {}
