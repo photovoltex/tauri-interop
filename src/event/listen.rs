@@ -47,7 +47,7 @@ impl Drop for ListenHandle {
     }
 }
 
-impl<'s> ListenHandle {
+impl ListenHandle {
     /// Registers a given event with the correlation callback and returns a [ListenResult]
     pub async fn register<T>(event: &'static str, callback: impl Fn(T) + 'static) -> ListenResult
     where
