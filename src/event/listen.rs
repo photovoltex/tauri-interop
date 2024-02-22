@@ -8,7 +8,7 @@ use leptos::{ReadSignal, WriteSignal};
 use super::Field;
 
 /// The result type that is returned by [ListenHandle::register]
-pub type ListenResult<'s> = Result<ListenHandle<'s>, ListenError>;
+pub type ListenResult = Result<ListenHandle, ListenError>;
 
 /// The generic payload received from [crate::bindings::listen] used for deserialization
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,26 +30,26 @@ pub enum ListenError {
 }
 
 /// Handle which holds the unlisten function and the correlated callback
-pub struct ListenHandle<'s> {
-    /// The callback which is invoke for the registered event
+pub struct ListenHandle {
+    /// The callback which is invoked for the registered event
     ///
     /// The callback will get detached, when the handle is dropped. Alternatively it can
     /// also be given to the js runtime (see [Closure] `into_js_value`/`forget`). This isn't
     /// recommended because this will leak memory by default.
     pub closure: Option<Closure<dyn Fn(JsValue)>>,
-    event: &'s str,
+    event: &'static str,
     detach_fn: Function,
 }
 
-impl Drop for ListenHandle<'_> {
+impl Drop for ListenHandle {
     fn drop(&mut self) {
         self.detach_listen()
     }
 }
 
-impl<'s> ListenHandle<'s> {
+impl<'s> ListenHandle {
     /// Registers a given event with the correlation callback and returns a [ListenResult]
-    pub async fn register<T>(event: &str, callback: impl Fn(T) + 'static) -> ListenResult
+    pub async fn register<T>(event: &'static str, callback: impl Fn(T) + 'static) -> ListenResult
     where
         T: for<'de> Deserialize<'de>,
     {
@@ -120,9 +120,9 @@ pub trait Listen {
     /// Registers an callback to a [Field]
     ///
     /// Default Implementation: see [ListenHandle::register]
-    fn listen_to<'r, F: Field<Self>>(
+    fn listen_to<F: Field<Self>>(
         callback: impl Fn(F::Type) + 'static,
-    ) -> impl std::future::Future<Output = ListenResult<'r>>
+    ) -> impl std::future::Future<Output = ListenResult>
     where
         Self: Sized + super::Parent,
     {
