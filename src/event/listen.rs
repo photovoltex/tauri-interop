@@ -1,9 +1,8 @@
 use js_sys::Function;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use wasm_bindgen::{closure::Closure, JsCast, JsValue};
-
 #[cfg(feature = "leptos")]
 use leptos::{ReadSignal, WriteSignal};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use super::Field;
 

@@ -1,10 +1,11 @@
-use convert_case::{Case, Casing};
 use proc_macro::Span;
+
+use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::{format_ident, ToTokens};
 use syn::{
     parse_quote, Attribute, Expr, ExprPath, FnArg, GenericParam, Generics, ItemFn, Lifetime,
-    LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type, TypePath,
+    LifetimeParam, Pat, ReturnType, Signature, Type, TypePath,
 };
 
 #[derive(PartialEq)]

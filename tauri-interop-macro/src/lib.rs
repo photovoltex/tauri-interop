@@ -1,14 +1,14 @@
 #![warn(missing_docs)]
 //! The macros use by `tauri_interop` to generate dynamic code depending on the target
 
-mod command;
-mod event;
-
+use proc_macro::TokenStream;
 use std::{collections::BTreeSet, sync::Mutex};
 
-use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse};
+
+mod command;
+mod event;
 
 /// Conditionally adds [Listen] or [Emit] to a struct
 #[cfg(feature = "event")]
