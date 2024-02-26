@@ -5,9 +5,9 @@
 ![License](https://img.shields.io/crates/l/tauri-interop.svg)
 
 What this crate tries to achieve:
-- generate a equal wasm-function for your defined `tauri::command`
+- generate an equal wasm-function for your defined `tauri::command`
 - collecting all defined `tauri::command`s without adding them manually
-- a way to sending events from tauri and receiving them in the frontend
+- a convenient way to send events from tauri and receiving them in the frontend
 
 
 ## Basic usage:
@@ -16,6 +16,52 @@ What this crate tries to achieve:
 >
 > Some examples in this documentation can't be executed with doctests due to
 > required wasm target and tauri modified environment (see [withGlobalTauri](https://tauri.app/v1/api/config/#buildconfig.withglobaltauri))
+
+### QOL macros
+
+This crate also adds some quality-of-life macros. These are intended to ease the drawbacks of compiling to
+multiple architectures. 
+
+#### Conditional `use`
+Because most crates are not intended to be compiled to wasm and most wasm crates are not intended to be compiled to
+the host-triplet they have to be excluded in each others compile process. The usual process to exclude uses for a certain
+architecture would look something like this:
+
+```rust
+#[cfg(not(target_family = "wasm"))]
+use tauri::AppHandle;
+
+#[tauri_interop::command]
+pub fn empty_invoke(_handle: AppHandle) {}
+```
+
+**General usage:**
+
+With the help of `tauri_interop::host_usage!()` and `tauri_interop::wasm_usage!()` we don't need to remember which 
+attribute we have to add and can just convert the above to the following:
+
+```rust
+tauri_interop::host_usage! {
+    use tauri::AppHandle;
+}
+
+#[tauri_interop::command]
+pub fn empty_invoke(_handle: AppHandle) {}
+```
+
+**Multiple `use` usage:**
+
+When multiple `use` should be excluded, they need to be separated by a single pipe (`|`). For example:
+
+```rust
+tauri_interop::host_usage! {
+    use tauri::State;
+    | use std::sync::RwLock; 
+}
+
+#[tauri_interop::command]
+pub fn empty_invoke(_state: State<RwLock<String>>) {}
+```
 
 ### Command (Frontend => Backend Communication)
 > For more examples see [cmd.rs](./test-project/api/src/cmd.rs) in test-project
