@@ -6,13 +6,4 @@ pub use type_aliases::*;
 pub mod bindings;
 
 #[cfg(not(target_family = "wasm"))]
-mod type_aliases {
-    /// Type alias to easier identify [tauri::State] via [tauri_interop_macro::command] macro
-    pub type TauriState<'r, T> = tauri::State<'r, T>;
-
-    /// Type alias to easier identify [tauri::Window] via [tauri_interop_macro::command] macro
-    pub type TauriWindow = tauri::Window;
-
-    /// Type alias to easier identify [tauri::AppHandle] via [tauri_interop_macro::command] macro
-    pub type TauriAppHandle = tauri::AppHandle;
-}
+mod type_aliases;

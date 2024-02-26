@@ -31,7 +31,7 @@ where
 }
 
 /// Wrapper for [invoke_catch], to return an
-/// expected [Result<T, E>] where [T] and [E] is [DeserializeOwned]
+/// expected [Result<T, E>] where both generics are [DeserializeOwned]
 pub async fn wrapped_invoke_catch<T, E>(command: &str, args: JsValue) -> Result<T, E>
 where
     T: DeserializeOwned,
