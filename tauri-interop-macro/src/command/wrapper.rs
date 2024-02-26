@@ -1,10 +1,11 @@
-use convert_case::{Case, Casing};
 use proc_macro::Span;
+
+use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::{format_ident, ToTokens};
 use syn::{
-    parse_quote, Attribute, Expr, ExprPath, FnArg, GenericParam, Generics, ItemFn, Lifetime,
-    LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type, TypePath,
+    parse_quote, Attribute, Expr, FnArg, GenericParam, Generics, ItemFn, Lifetime, LifetimeParam,
+    Pat, ReturnType, Signature, Type, TypePath,
 };
 
 #[derive(PartialEq)]
@@ -21,13 +22,13 @@ impl Invoke {
     }
 
     pub fn as_expr(&self, cmd_name: String, arg_name: &Ident) -> Expr {
-        let expr: ExprPath = match self {
-            Invoke::Empty => parse_quote!(bindings::invoke),
-            Invoke::Async | Invoke::AsyncEmpty => parse_quote!(command::async_invoke),
-            Invoke::AsyncResult => parse_quote!(command::invoke_catch),
+        let expr: Ident = match self {
+            Invoke::Empty => parse_quote!(invoke),
+            Invoke::Async | Invoke::AsyncEmpty => parse_quote!(wrapped_async_invoke),
+            Invoke::AsyncResult => parse_quote!(wrapped_invoke_catch),
         };
 
-        let call = parse_quote!( ::tauri_interop::#expr(#cmd_name, #arg_name) );
+        let call = parse_quote!( ::tauri_interop::command::bindings::#expr(#cmd_name, #arg_name) );
 
         if self.as_async().is_some() {
             Expr::Await(parse_quote!(#call.await))
@@ -37,22 +38,20 @@ impl Invoke {
     }
 }
 
-fn is_result(segment: &PathSegment) -> bool {
-    segment.ident.to_string().as_str() == "Result"
+fn is_result(type_path: &TypePath) -> bool {
+    type_path
+        .path
+        .segments
+        .iter()
+        .any(|segment| "Result".eq(&segment.ident.to_string()))
 }
 
 fn determine_invoke(return_type: &ReturnType, is_async: bool) -> Invoke {
     match return_type {
-        ReturnType::Default => {
-            if is_async {
-                Invoke::AsyncEmpty
-            } else {
-                Invoke::Empty
-            }
-        }
+        ReturnType::Default if is_async => Invoke::AsyncEmpty,
+        ReturnType::Default => Invoke::Empty,
         ReturnType::Type(_, ty) => match ty.as_ref() {
-            // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
-            Type::Path(path) if path.path.segments.iter().any(is_result) => Invoke::AsyncResult,
+            Type::Path(path) if is_result(path) => Invoke::AsyncResult,
             Type::Path(_) => Invoke::Async,
             others => panic!("no support for '{}'", others.to_token_stream()),
         },
@@ -65,14 +64,12 @@ fn new_arg_lt() -> Lifetime {
     Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into())
 }
 
-const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
-
 fn any_tauri(ty_path: &TypePath) -> bool {
     ty_path
         .path
         .segments
         .iter()
-        .any(|segment| TAURI_TYPES.contains(&segment.ident.to_string().as_str()))
+        .any(|segment| segment.ident.to_string().to_lowercase().contains("tauri"))
 }
 
 pub struct InvokeCommand {

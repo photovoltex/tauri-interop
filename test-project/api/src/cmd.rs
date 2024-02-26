@@ -4,6 +4,7 @@ tauri_interop::host_usage! {
     // it produced a warning... and we don't like warnings, so we exclude it
     use crate::model::TestState;
     | use std::sync::RwLock;
+    | use tauri_interop::command::{TauriAppHandle, TauriState};
 }
 
 #[tauri_interop::command]
@@ -41,7 +42,7 @@ pub fn result_test() -> Result<i32, String> {
 }
 
 #[tauri_interop::command]
-pub fn emit(state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
+pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
     use tauri_interop::event::emit::Emit;
     // newly generated mod
     use crate::model::test_state;

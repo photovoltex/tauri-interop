@@ -1,10 +1,10 @@
-use crate::command::wrapper::{InvokeArgument, InvokeCommand};
 use proc_macro::TokenStream;
+
 use proc_macro2::Ident;
 use quote::{format_ident, quote, ToTokens};
-use syn::punctuated::Punctuated;
-use syn::token::Comma;
-use syn::{parse_macro_input, FnArg, ItemFn};
+use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, ItemFn};
+
+use crate::command::wrapper::{InvokeArgument, InvokeCommand};
 
 mod wrapper;
 
