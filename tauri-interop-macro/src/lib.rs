@@ -15,7 +15,7 @@ mod event;
 
 /// Conditionally adds [Listen] or [Emit] to a struct
 #[cfg(feature = "event")]
-#[proc_macro_derive(Event)]
+#[proc_macro_derive(Event, attributes(mod_name))]
 pub fn derive_event(stream: TokenStream) -> TokenStream {
     if cfg!(feature = "wasm") {
         event::listen::derive(stream)
@@ -30,7 +30,7 @@ pub fn derive_event(stream: TokenStream) -> TokenStream {
 ///
 /// Used for host code generation.
 #[cfg(feature = "event")]
-#[proc_macro_derive(Emit)]
+#[proc_macro_derive(Emit, attributes(mod_name))]
 pub fn derive_emit(stream: TokenStream) -> TokenStream {
     event::emit::derive(stream)
 }
@@ -49,7 +49,7 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
 ///
 /// Used for wasm code generation
 #[cfg(feature = "event")]
-#[proc_macro_derive(Listen)]
+#[proc_macro_derive(Listen, attributes(mod_name))]
 pub fn derive_listen(stream: TokenStream) -> TokenStream {
     event::listen::derive(stream)
 }

@@ -1,12 +1,12 @@
 use proc_macro::TokenStream;
 
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, DeriveInput, ItemStruct};
+use syn::{parse_macro_input, DeriveInput};
 
 use crate::event::{EventField, EventStruct, Field, FieldAttributes};
 
 pub fn derive(stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
+    let stream_struct = parse_macro_input!(stream as DeriveInput);
     let EventStruct {
         name,
         mod_name,
