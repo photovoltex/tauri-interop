@@ -32,13 +32,25 @@ fn prepare_event(derive_input: DeriveInput) -> EventStruct {
         panic!("Tuple Structs aren't supported")
     }
 
+    let auto_naming = derive_input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("auto_naming"))
+        .map(|attr| attr.parse_args::<Ident>().unwrap().to_string());
+
     let name = derive_input.ident.clone();
+    let (naming_case, mod_name) = match auto_naming {
+        Some(naming) if naming == "EnumLike" => (Case::Pascal, format!("{name}Field")),
+        Some(naming) => panic!("No naming type found for: {naming}"),
+        None => (Case::Snake, name.to_string()),
+    };
+
     let mod_name = derive_input
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("mod_name"))
         .map(|attr| attr.parse_args::<Ident>().unwrap())
-        .unwrap_or(format_ident!("{}", name.to_string().to_case(Case::Snake)));
+        .unwrap_or(format_ident!("{}", mod_name.to_case(naming_case)));
 
     let fields = data_struct
         .fields
