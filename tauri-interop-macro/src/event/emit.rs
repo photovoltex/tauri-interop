@@ -35,12 +35,12 @@ pub fn derive(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         pub mod #mod_name {
             use super::#name;
-            use tauri_interop::event::{Field, emit::Emit};
+            use tauri_interop::event::{Field, Emit};
 
             #( #emit_fields )*
         }
 
-        impl ::tauri_interop::event::emit::Emit for #name {
+        impl ::tauri_interop::event::Emit for #name {
             fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
                 use #mod_name::*;
                 use ::tauri_interop::event::Field;

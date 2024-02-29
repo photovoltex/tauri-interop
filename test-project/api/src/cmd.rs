@@ -46,7 +46,7 @@ pub fn result_test() -> Result<i32, String> {
 
 #[tauri_interop::command]
 pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
-    use tauri_interop::event::emit::Emit;
+    use tauri_interop::event::Emit;
     // newly generated mod, renamed to test_mod, default for TestState is test_state
     use crate::model::test_mod;
 

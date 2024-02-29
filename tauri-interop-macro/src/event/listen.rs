@@ -37,7 +37,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
             #( #listen_fields )*
         }
 
-        impl ::tauri_interop::event::listen::Listen for #name {}
+        impl ::tauri_interop::event::Listen for #name {}
     };
 
     TokenStream::from(stream.to_token_stream())

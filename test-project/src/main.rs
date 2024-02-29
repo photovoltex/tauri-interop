@@ -1,6 +1,6 @@
 #![allow(clippy::disallowed_names)]
 
-use api::event::listen::Listen;
+use api::event::Listen;
 use api::model::{test_mod, TestState};
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]

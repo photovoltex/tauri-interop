@@ -5,10 +5,9 @@
 ![License](https://img.shields.io/crates/l/tauri-interop.svg)
 
 What this crate tries to achieve:
-- generate an equal wasm-function for your defined `tauri::command`
+- generate an equal rust-wasm-function for a defined `tauri::command`
 - collecting all defined `tauri::command`s without adding them manually
-- a convenient way to send events from tauri and receiving them in the frontend
-
+- a convenient way to send events from tauri and receiving them in a rust based wasm-frontend
 
 ## Basic usage:
 
@@ -174,7 +173,7 @@ When using the derive macro `tauri_interop::Event` it expands depending on the `
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
 ```rust , ignore-wasm32-unknown-unknown
-use tauri_interop::{Event, event::emit::Emit};
+use tauri_interop::{Event, event::Emit};
 
 #[derive(Default, Event)]
 pub struct Test {
