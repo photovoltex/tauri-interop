@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 use crate::event::{EventField, EventStruct, Field, FieldAttributes};
 
@@ -93,6 +93,8 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         impl Field<#parent> for #name {
             type Type = #parent_field_ty;
+
+            const EVENT_NAME: &'static str = #event_name;
 
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
                 use ::tauri::Manager;
