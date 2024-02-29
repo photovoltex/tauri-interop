@@ -1,12 +1,12 @@
 use proc_macro::TokenStream;
 
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, DeriveInput, ItemStruct};
+use syn::{DeriveInput, parse_macro_input};
 
 use crate::event::{EventField, EventStruct, Field, FieldAttributes};
 
 pub fn derive(stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
+    let stream_struct = parse_macro_input!(stream as DeriveInput);
     let EventStruct {
         name,
         mod_name,
@@ -33,8 +33,6 @@ pub fn derive(stream: TokenStream) -> TokenStream {
     let event_fields = fields.iter().map(|field| &field.field_name);
 
     let stream = quote! {
-        use tauri_interop::event::{Field, emit::Emit};
-
         pub mod #mod_name {
             use super::#name;
             use tauri_interop::event::{Field, emit::Emit};
@@ -42,26 +40,29 @@ pub fn derive(stream: TokenStream) -> TokenStream {
             #( #emit_fields )*
         }
 
-        impl Emit for #name {
+        impl ::tauri_interop::event::emit::Emit for #name {
             fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
                 use #mod_name::*;
+                use ::tauri_interop::event::Field;
 
                 #( #event_fields::emit(self, handle)?; )*
 
                 Ok(())
             }
 
-            fn emit<F: Field<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
+            fn emit<F: ::tauri_interop::event::Field<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
             where
                 Self: Sized
             {
+                use ::tauri_interop::event::Field;
                 F::emit(self, handle)
             }
 
-            fn update<F: Field<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
+            fn update<F: ::tauri_interop::event::Field<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
             where
                 Self: Sized
             {
+                use ::tauri_interop::event::Field;
                 F::update(self, handle, field)
             }
         }
@@ -92,6 +93,8 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         impl Field<#parent> for #name {
             type Type = #parent_field_ty;
+
+            const EVENT_NAME: &'static str = #event_name;
 
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
                 use ::tauri::Manager;

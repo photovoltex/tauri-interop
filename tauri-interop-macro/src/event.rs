@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{Attribute, DeriveInput, ItemStruct, Type};
+use syn::{Attribute, Data, DeriveInput, Type};
 
 pub(crate) mod emit;
 pub(crate) mod listen;
@@ -18,23 +18,41 @@ struct EventField {
     parent_field_ty: Type,
 }
 
-fn prepare_event(stream_struct: ItemStruct) -> EventStruct {
-    if stream_struct.fields.is_empty() {
+fn prepare_event(derive_input: DeriveInput) -> EventStruct {
+    let data_struct = match derive_input.data {
+        Data::Struct(data_struct) => data_struct,
+        _ => panic!("The macro only works with structs"),
+    };
+
+    if data_struct.fields.is_empty() {
         panic!("No fields provided")
     }
 
-    if stream_struct
-        .fields
-        .iter()
-        .any(|field| field.ident.is_none())
-    {
+    if data_struct.fields.iter().any(|field| field.ident.is_none()) {
         panic!("Tuple Structs aren't supported")
     }
 
-    let name = stream_struct.ident.clone();
-    let mod_name = format_ident!("{}", name.to_string().to_case(Case::Snake));
+    let auto_naming = derive_input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("auto_naming"))
+        .map(|attr| attr.parse_args::<Ident>().unwrap().to_string());
 
-    let fields = stream_struct
+    let name = derive_input.ident.clone();
+    let (naming_case, mod_name) = match auto_naming {
+        Some(naming) if naming == "EnumLike" => (Case::Pascal, format!("{name}Field")),
+        Some(naming) => panic!("No naming type found for: {naming}"),
+        None => (Case::Snake, name.to_string()),
+    };
+
+    let mod_name = derive_input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("mod_name"))
+        .map(|attr| attr.parse_args::<Ident>().unwrap())
+        .unwrap_or(format_ident!("{}", mod_name.to_case(naming_case)));
+
+    let fields = data_struct
         .fields
         .iter()
         .map(|field| {

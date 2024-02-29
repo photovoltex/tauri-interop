@@ -174,7 +174,7 @@ When using the derive macro `tauri_interop::Event` it expands depending on the `
 
 To emit a variable from the above struct (which is mostly intended to be used as state) in the host triplet
 ```rust , ignore-wasm32-unknown-unknown
-use tauri_interop::Event;
+use tauri_interop::{Event, event::emit::Emit};
 
 #[derive(Default, Event)]
 pub struct Test {

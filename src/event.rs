@@ -35,17 +35,18 @@ where
     /// The type of the field
     type Type;
 
-    #[cfg(any(target_family = "wasm", feature = "wasm"))]
     /// The event of the field
     const EVENT_NAME: &'static str;
 
     #[cfg(not(target_family = "wasm"))]
     /// Emits event of the related field with their value
+    ///
+    /// not in wasm available
     fn emit(parent: &P, handle: &AppHandle<Wry>) -> Result<(), Error>;
 
     #[cfg(not(target_family = "wasm"))]
     /// Updates the related field and emit its event
     ///
-    /// Only required for "target_family = wasm"
+    /// not in wasm available
     fn update(s: &mut P, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
 }
