@@ -2,6 +2,7 @@ use tauri_interop::Event;
 
 #[allow(dead_code)]
 #[derive(Default, Event)]
+#[mod_name(test_mod)]
 pub struct TestState {
     foo: String,
     pub bar: bool,

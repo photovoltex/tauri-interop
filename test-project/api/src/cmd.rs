@@ -44,24 +44,24 @@ pub fn result_test() -> Result<i32, String> {
 #[tauri_interop::command]
 pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
     use tauri_interop::event::emit::Emit;
-    // newly generated mod
-    use crate::model::test_state;
+    // newly generated mod, renamed to test_mod, default for TestState is test_state
+    use crate::model::test_mod;
 
     log::info!("emit cmd received");
 
     let mut state = state.write().unwrap();
 
     if state.bar {
-        state.update::<test_state::Bar>(&handle, false).unwrap();
+        state.update::<test_mod::Bar>(&handle, false).unwrap();
     } else {
         state
-            .update::<test_state::Foo>(&handle, "foo".into())
+            .update::<test_mod::Foo>(&handle, "foo".into())
             .unwrap();
     }
 
     state.bar = !state.bar;
     state
-        .emit::<test_state::Foo>(&handle)
+        .emit::<test_mod::Foo>(&handle)
         .unwrap();
 
     state.emit_all(&handle).unwrap();
