@@ -232,9 +232,9 @@ as the event should be received. Dropping it will automatically detach the closu
 [cmd.rs](./test-project/api/src/cmd.rs) for other example how it could be used.
 
 #### Feature: leptos
-When the `leptos` feature is enabled it will add additional `use_<field>` methods on the provided struct.
-These methods take care of the required initial asynchronous call to register the listener and will hold the
-handle in scope as long as the component is rendered.
+When the `leptos` feature is enabled the `use_field` method is added to the `Listen` trait when compiling to wasm. 
+The method takes care of the initial asynchronous call to register the listener and will hold the handle in scope 
+as long as the leptos component is rendered.
 
 ```rust , ignore
 use tauri_interop::Event;
@@ -248,7 +248,7 @@ pub struct Test {
 fn main() {
   use tauri_interop::event::listen::Listen;
 
-  let (foo: leptos::ReadSignal<String>, set_foo: leptos::WriteSignal<String>) = Test::use_field::<test::Foo>(String::default());
+  let foo: leptos::ReadSignal<String> = Test::use_field::<test::Foo>(String::default());
 }
 ```
 

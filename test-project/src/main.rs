@@ -72,7 +72,7 @@ fn App() -> impl IntoView {
 fn Foo() -> impl IntoView {
     Timeout::new(2000, api::cmd::emit).forget();
 
-    let (foo, _set_foo) = TestState::use_field::<test_mod::Foo>("Test".into());
+    let foo = TestState::use_field::<test_mod::Foo>("Test".into());
 
     view! { <h1>{foo}</h1> }
 }
