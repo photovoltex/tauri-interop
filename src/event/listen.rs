@@ -1,6 +1,6 @@
 use js_sys::Function;
 #[cfg(feature = "leptos")]
-use leptos::{ReadSignal, WriteSignal};
+use leptos::ReadSignal;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
@@ -87,10 +87,10 @@ impl ListenHandle {
 
     /// Registers a given event and binds a returned signal to these event changes
     ///
-    /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it
+    /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
     /// scope, while it is used in a [leptos::component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
-    pub fn use_register<T>(event: &'static str, initial_value: T) -> (ReadSignal<T>, WriteSignal<T>)
+    pub fn use_register<T>(event: &'static str, initial_value: T) -> ReadSignal<T>
     where
         T: DeserializeOwned,
     {
@@ -112,7 +112,7 @@ impl ListenHandle {
             handle.try_set(Some(listen_handle));
         });
 
-        (signal, set_signal)
+        signal
     }
 }
 
@@ -134,7 +134,7 @@ pub trait Listen {
     ///
     /// Default Implementation: see [ListenHandle::use_register]
     #[cfg(feature = "leptos")]
-    fn use_field<F: Field<Self>>(initial: F::Type) -> (ReadSignal<F::Type>, WriteSignal<F::Type>)
+    fn use_field<F: Field<Self>>(initial: F::Type) -> ReadSignal<F::Type>
     where
         Self: Sized + super::Parent,
     {
