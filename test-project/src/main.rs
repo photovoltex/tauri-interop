@@ -11,6 +11,7 @@ fn main() {
     console_error_panic_hook::set_once();
 
     api::cmd::empty_invoke();
+    api::cmd::underscore_invoke(69);
 
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);

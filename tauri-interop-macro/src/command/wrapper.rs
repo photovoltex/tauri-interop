@@ -127,12 +127,16 @@ pub fn prepare(function: ItemFn) -> InvokeCommand {
                 false
             };
 
-            match typed.pat.as_ref() {
-                Pat::Ident(ident) => Some(FieldArg {
-                    ident: ident.ident.clone(),
-                    argument: fn_arg,
-                    requires_lifetime: req_lf,
-                }),
+            match typed.pat.as_mut() {
+                Pat::Ident(ident) => {
+                    // converting the ident to snake case, so it matches the expected snake case
+                    ident.ident = format_ident!("{}", ident.ident.to_string().to_case(Case::Snake));
+                    Some(FieldArg {
+                        ident: ident.ident.clone(),
+                        argument: fn_arg,
+                        requires_lifetime: req_lf,
+                    })
+                },
                 _ => None,
             }
         })
