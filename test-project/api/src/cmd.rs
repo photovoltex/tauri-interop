@@ -11,6 +11,9 @@ tauri_interop::host_usage! {
 pub fn empty_invoke() {}
 
 #[tauri_interop::command]
+pub fn underscore_invoke(_invoke: u8) {}
+
+#[tauri_interop::command]
 pub async fn await_heavy_computing() {
     std::thread::sleep(std::time::Duration::from_millis(5000))
 }
