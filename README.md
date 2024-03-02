@@ -137,11 +137,17 @@ fn wait_for_sync_execution(value: &str) -> String {
 
 // let result: Result<String, String> = asynchronous_execution(true).await;
 #[tauri_interop::command]
+async fn await_heavy_computing() { 
+    std::thread::sleep(std::time::Duration::from_millis(5000))
+}
+
+// let result: Result<String, String> = asynchronous_execution(true).await;
+#[tauri_interop::command]
 async fn asynchronous_execution(change: bool) -> Result<String, String> {
     if change {
-        Ok("asynchronous execution requires result definition".into())
+        Ok("asynchronous execution returning result, need Result in their type name".into())
     } else {
-        Err("and ".into())
+        Err("if they don't it, the error will be not be parsed/handled".into())
     }
 }
 
