@@ -65,21 +65,4 @@ pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
     state.update::<test_mod::Bar>(&handle, bar_value).unwrap();
 }
 
-#[cfg(feature = "broken")]
-pub mod broken {
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub enum State {
-        Test,
-    }
-
-    #[allow(clippy::result_unit_err)]
-    /// currently this doesn't work cause of the way tauri::{AppHandel, State, Window} are filtered
-    #[tauri_interop::conditional_command]
-    pub fn invoke_result_tauri(_state: State) -> Result<(), ()> {
-        Ok(())
-    }
-}
-
 tauri_interop::collect_commands!();

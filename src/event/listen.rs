@@ -103,7 +103,7 @@ impl ListenHandle {
         leptos::spawn_local(async move {
             let listen_handle = ListenHandle::register(event, move |value: T| {
                 log::trace!("update for {}", event);
-                set_signal.set(value);
+                set_signal.set(value)
             })
             .await
             .unwrap();
