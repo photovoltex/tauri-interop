@@ -54,20 +54,15 @@ pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
 
     let mut state = state.write().unwrap();
 
-    if state.bar {
-        state.update::<test_mod::Bar>(&handle, false).unwrap();
+    let bar_value = !state.bar;
+    let foo_value = if state.bar {
+        "bar"
     } else {
-        state
-            .update::<test_mod::Foo>(&handle, "foo".into())
-            .unwrap();
-    }
+        "foo"
+    };
 
-    state.bar = !state.bar;
-    state
-        .emit::<test_mod::Foo>(&handle)
-        .unwrap();
-
-    state.emit_all(&handle).unwrap();
+    state.update::<test_mod::Foo>(&handle, foo_value.into()).unwrap();
+    state.update::<test_mod::Bar>(&handle, bar_value).unwrap();
 }
 
 #[cfg(feature = "broken")]

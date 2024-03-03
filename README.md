@@ -256,8 +256,3 @@ fn main() {
   let foo: leptos::ReadSignal<String> = Test::use_field::<test::Foo>(String::default());
 }
 ```
-
-## Known Issues:
-- feature: leptos
-  - sometimes a closure is accessed after being dropped
-  - that is probably a race condition where the unlisten function doesn't detach the callback fast enough

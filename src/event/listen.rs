@@ -88,7 +88,7 @@ impl ListenHandle {
     /// Registers a given event and binds a returned signal to these event changes
     ///
     /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
-    /// scope, while it is used in a [leptos::component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
+    /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
     pub fn use_register<T>(event: &'static str, initial_value: T) -> ReadSignal<T>
     where
@@ -98,7 +98,7 @@ impl ListenHandle {
 
         let (signal, set_signal) = leptos::create_signal(initial_value);
 
-        // creating this signal in a leptos::component holdes the value in scope, and drops it automatically
+        // creating this signal in a leptos component holds the value in scope, and drops it automatically
         let handle = leptos::create_rw_signal(None);
         leptos::spawn_local(async move {
             let listen_handle = ListenHandle::register(event, move |value: T| {

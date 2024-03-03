@@ -4,7 +4,7 @@ use api::event::Listen;
 use api::model::{test_mod, TestState};
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]
-use leptos::{component, create_signal, view, IntoView};
+use leptos::{component, view, IntoView};
 
 fn main() {
     console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
@@ -43,23 +43,15 @@ fn main() {
 #[cfg(feature = "leptos")]
 #[component]
 fn App() -> impl IntoView {
-    use leptos::{SignalGet, SignalSet};
+    use leptos::SignalGet;
 
-    let (bar, set_bar) = create_signal(false);
-
-    leptos::spawn_local(async move {
-        let handle_bar = TestState::listen_to::<test_mod::Bar>(move |bar| set_bar.set(bar))
-            .await
-            .unwrap();
-
-        Timeout::new(5000, move || drop(handle_bar)).forget();
-    });
+    let bar = TestState::use_field::<test_mod::Bar>(true);
 
     view! {
         <div>
             <Foo/>
             {move || if bar.get() {
-                "No Foo".into_view()
+                Foo.into_view()
             } else {
                 Foo.into_view()
             }}
@@ -70,7 +62,11 @@ fn App() -> impl IntoView {
 #[cfg(feature = "leptos")]
 #[component]
 fn Foo() -> impl IntoView {
-    Timeout::new(2000, api::cmd::emit).forget();
+    log::info!("create foo");
+    Timeout::new(3000, || {
+        log::info!("emit foo");
+        api::cmd::emit();
+    }).forget();
 
     let foo = TestState::use_field::<test_mod::Foo>("Test".into());
 
