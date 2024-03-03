@@ -19,7 +19,7 @@ pub async fn await_heavy_computing() {
 }
 
 #[tauri_interop::command]
-fn greet(name_to_greet: &str) -> String {
+pub fn greet(name_to_greet: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name_to_greet)
 }
 
@@ -86,5 +86,3 @@ pub mod broken {
         Ok(())
     }
 }
-
-tauri_interop::collect_commands!();
