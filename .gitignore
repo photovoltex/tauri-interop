@@ -1,3 +1,6 @@
 .idea/
 target/
 dist/
+**/Cargo.lock
+!Cargo.lock
+!test-project/Cargo.lock
