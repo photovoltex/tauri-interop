@@ -5,10 +5,7 @@ use proc_macro::TokenStream;
 use std::{collections::BTreeSet, sync::Mutex};
 
 use quote::{format_ident, quote, ToTokens};
-use syn::{
-    parse::Parser, parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse,
-    Token,
-};
+use syn::{parse::Parser, parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse, Token};
 
 mod command;
 mod event;
@@ -98,7 +95,7 @@ pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
 /// The provided function isn't available for wasm
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
-    let handler = HANDLER_LIST.lock().unwrap();
+    let mut handler = HANDLER_LIST.lock().unwrap();
     let to_generated_handler = handler
         .iter()
         .map(|s| format_ident!("{s}"))
@@ -114,6 +111,9 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
             ::tauri::generate_handler![ #to_generated_handler ]
         }
     };
+
+    // clearing the already used handlers
+    handler.clear();
 
     TokenStream::from(stream.to_token_stream())
 }

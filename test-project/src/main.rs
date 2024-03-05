@@ -10,13 +10,13 @@ fn main() {
     console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
     console_error_panic_hook::set_once();
 
-    api::cmd::empty_invoke();
-    api::cmd::underscore_invoke(69);
+    api::command::empty_invoke();
+    api::command::underscore_invoke(69);
 
     wasm_bindgen_futures::spawn_local(async {
-        log::info!("{}", api::cmd::greet("frontend").await);
+        log::info!("{}", api::command::greet("frontend").await);
 
-        api::cmd::await_heavy_computing().await;
+        api::command::await_heavy_computing().await;
         log::info!("heavy computing finished")
     });
 
@@ -33,8 +33,8 @@ fn main() {
         Timeout::new(2000, move || drop(handle_bar)).forget();
     });
 
-    Timeout::new(1000, api::cmd::emit).forget();
-    Timeout::new(3000, api::cmd::emit).forget();
+    Timeout::new(1000, api::command::emit).forget();
+    Timeout::new(3000, api::command::emit).forget();
 
     #[cfg(feature = "leptos")]
     Timeout::new(5000, || leptos::mount_to_body(|| view! { <App /> })).forget();
@@ -70,7 +70,7 @@ fn App() -> impl IntoView {
 #[cfg(feature = "leptos")]
 #[component]
 fn Foo() -> impl IntoView {
-    Timeout::new(2000, api::cmd::emit).forget();
+    Timeout::new(2000, api::command::emit).forget();
 
     let foo = TestState::use_field::<test_mod::Foo>("Test".into());
 
