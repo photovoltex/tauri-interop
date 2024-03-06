@@ -86,3 +86,5 @@ pub mod broken {
         Ok(())
     }
 }
+
+tauri_interop::collect_commands!();

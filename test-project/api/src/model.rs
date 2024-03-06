@@ -2,6 +2,11 @@
 #![allow(dead_code)]
 #![allow(path_statements)]
 
+// this mod at this position doesn't make much sense logic vise
+// for testing the combine feature tho its a quite convienend spot :D
+#[tauri_interop::commands]
+pub mod other_cmd;
+
 use tauri_interop::Event;
 
 #[derive(Default, Event)]
