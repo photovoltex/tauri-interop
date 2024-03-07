@@ -27,6 +27,11 @@ jobs:
         sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
     - name: Run tests for crate
+      run: |
+        cd tauri-interop-macro
+        cargo test
+
+    - name: Run tests for crate
       run: cargo test
 
     - name: Build test-project (wasm)
