@@ -3665,7 +3665,6 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "serde",
  "syn 2.0.52",
 ]
 

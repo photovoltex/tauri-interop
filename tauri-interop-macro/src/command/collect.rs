@@ -2,9 +2,10 @@ use std::collections::HashSet;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
+use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_quote, ExprPath};
+use syn::{parse_quote, ExprPath, ItemUse, Token};
 
 pub fn commands_with_mod_name(mod_name: &str, commands: &HashSet<String>) -> HashSet<String> {
     commands
@@ -36,6 +37,24 @@ pub fn get_separated_command(input: &str) -> Option<(Ident, Ident)> {
     Some((mod_name, cmd_name))
 }
 
+pub fn get_filtered_commands(commands: &HashSet<String>, mods: &[ExprPath]) -> HashSet<String> {
+    commands
+        .iter()
+        .flat_map(|command| {
+            let (mod_name, _) = get_separated_command(command)?;
+            mods.iter()
+                .any(|r#mod| {
+                    r#mod
+                        .path
+                        .segments
+                        .iter()
+                        .any(|seg| mod_name.eq(&seg.ident))
+                })
+                .then_some(command.clone())
+        })
+        .collect::<HashSet<_>>()
+}
+
 pub fn get_handler_function(
     fn_name: Ident,
     commands: &HashSet<String>,
@@ -55,4 +74,12 @@ pub fn get_handler_function(
             ::tauri::generate_handler![ #handlers ]
         }
     }
+}
+
+pub fn uses(stream: proc_macro::TokenStream) -> Vec<ItemUse> {
+    Punctuated::<ItemUse, Token![|]>::parse_terminated
+        .parse2(stream.into())
+        .unwrap()
+        .into_iter()
+        .collect::<Vec<_>>()
 }

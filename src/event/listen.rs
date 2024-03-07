@@ -30,7 +30,7 @@ pub enum ListenError {
     NotAFunction(JsValue),
 }
 
-/// Handle which holds the unlisten function and the correlated callback
+/// Handle which holds the function to detach the listener and the correlated callback
 pub struct ListenHandle {
     /// The callback which is invoked for the registered event
     ///
@@ -88,7 +88,7 @@ impl ListenHandle {
     /// Registers a given event and binds a returned signal to these event changes
     ///
     /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
-    /// scope, while it is used in a [leptos::component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
+    /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
     pub fn use_register<T>(event: &'static str, initial_value: T) -> ReadSignal<T>
     where
@@ -98,12 +98,12 @@ impl ListenHandle {
 
         let (signal, set_signal) = leptos::create_signal(initial_value);
 
-        // creating this signal in a leptos::component holdes the value in scope, and drops it automatically
+        // creating this signal in a leptos component holds the value in scope, and drops it automatically
         let handle = leptos::create_rw_signal(None);
         leptos::spawn_local(async move {
             let listen_handle = ListenHandle::register(event, move |value: T| {
                 log::trace!("update for {}", event);
-                set_signal.set(value);
+                set_signal.set(value)
             })
             .await
             .unwrap();
@@ -118,9 +118,29 @@ impl ListenHandle {
 
 /// Trait that defines the available listen methods
 pub trait Listen {
-    /// Registers an callback to a [Field]
+    /// Registers a callback to a [Field]
     ///
     /// Default Implementation: see [ListenHandle::register]
+    ///
+    /// ### Example
+    ///
+    /// ```ignore
+    /// use tauri_interop::Event;
+    ///
+    /// #[derive(Default, Event)]
+    /// pub struct Test {
+    ///     foo: String,
+    ///     pub bar: bool,
+    /// }
+    ///
+    /// async fn main() {
+    ///     use tauri_interop::event::listen::Listen;
+    ///
+    ///     let _listen_handle: ListenHandle<'_> = Test::listen_to::<test::Foo>(|foo| {
+    ///         /* use received foo: String here */
+    ///     }).await;
+    /// }
+    /// ```
     fn listen_to<F: Field<Self>>(
         callback: impl Fn(F::Type) + 'static,
     ) -> impl std::future::Future<Output = ListenResult>
@@ -133,6 +153,24 @@ pub trait Listen {
     /// Creates a signal to a [Field]
     ///
     /// Default Implementation: see [ListenHandle::use_register]
+    ///
+    /// ### Example
+    ///
+    /// ```ignore
+    /// use tauri_interop::Event;
+    ///
+    /// #[derive(Default, Event)]
+    /// pub struct Test {
+    ///     foo: String,
+    ///     pub bar: bool,
+    /// }
+    ///
+    /// fn main() {
+    ///   use tauri_interop::event::listen::Listen;
+    ///
+    ///   let foo: leptos::ReadSignal<String> = Test::use_field::<test::Foo>(String::default());
+    /// }
+    /// ```
     #[cfg(feature = "leptos")]
     fn use_field<F: Field<Self>>(initial: F::Type) -> ReadSignal<F::Type>
     where

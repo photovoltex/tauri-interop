@@ -46,7 +46,7 @@ pub fn result_test() -> Result<i32, String> {
 
 #[tauri_interop::command]
 pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
-    use tauri_interop::event::emit::Emit;
+    use tauri_interop::event::Emit;
     // newly generated mod, renamed to test_mod, default for TestState is test_state
     use crate::model::test_mod;
 
@@ -54,37 +54,15 @@ pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
 
     let mut state = state.write().unwrap();
 
-    if state.bar {
-        state.update::<test_mod::Bar>(&handle, false).unwrap();
+    let bar_value = !state.bar;
+    let foo_value = if state.bar {
+        "bar"
     } else {
-        state
-            .update::<test_mod::Foo>(&handle, "foo".into())
-            .unwrap();
-    }
+        "foo"
+    };
 
-    state.bar = !state.bar;
-    state
-        .emit::<test_mod::Foo>(&handle)
-        .unwrap();
-
-    state.emit_all(&handle).unwrap();
-}
-
-#[cfg(feature = "broken")]
-pub mod broken {
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub enum State {
-        Test,
-    }
-
-    #[allow(clippy::result_unit_err)]
-    /// currently this doesn't work cause of the way tauri::{AppHandel, State, Window} are filtered
-    #[tauri_interop::conditional_command]
-    pub fn invoke_result_tauri(_state: State) -> Result<(), ()> {
-        Ok(())
-    }
+    state.update::<test_mod::Foo>(&handle, foo_value.into()).unwrap();
+    state.update::<test_mod::Bar>(&handle, bar_value).unwrap();
 }
 
 tauri_interop::collect_commands!();
