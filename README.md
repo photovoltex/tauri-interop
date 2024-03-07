@@ -31,7 +31,7 @@ Tauri has an [event](https://tauri.app/v1/guides/features/events) mechanic which
 the frontend. The usage is not as intuitive and has to some inconveniences that make it quite hard to recommend. To 
 improve the usage, this crate provides the derive-marcos `Event`, `Emit` and `Listen`. The `Event` macro is just a 
 conditional wrapper that expands to `Emit` for the tauri compilation and `Listen` for the wasm compilation. It is 
-the intended way to use this feature. The usage is explained in more detail in the [event](#event-backend--frontend-communication) 
+the intended way to use this feature. The usage is explained in the documentation of the `Event` macro. 
 section.
 
 ## Basic usage:
@@ -44,18 +44,18 @@ section.
 ### Command (Frontend => Backend Communication)
 > For more examples see [cmd.rs](./test-project/api/src/cmd.rs) in test-project
 
-Using `tauri_interop::command` does two things:
-- it provides the command with two macros which are used depending on the `target_family`
+The newly provides macro `tauri_interop::command` does two things:
+- it provides the function with two macros which are used depending on the targeted architecture
   - `tauri_interop::binding` is used when compiling to `wasm`
   - `tauri::command` is used otherwise
-- it adds an entry to `tauri_interop::collect_commands!()` (see [collect commands](#collect-commands))
+- additionally it provides the possibility to collect all defined commands via `tauri_interop::collect_commands!()` 
+  - for more info see [collect commands](#collect-commands))
   - the function is not generated when targeting `wasm`
 
-The defined command above can then be used in wasm as below. Due to receiving data from 
-tauri via a promise, the command response has to be awaited.
+The generated command can then be used in `wasm` like the following:
 ```rust , ignore
 #[tauri_interop::command]
-fn greet(name: &str) -> String {
+fn greet(name: &str, _handle: tauri::AppHandle) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
@@ -69,7 +69,7 @@ fn main() {
 }
 ```
 
-#### Command representation Host/Wasm
+**Command representation Host/Wasm (and a bit background knowledge)**
 
 - the returned type of the wasm binding should be 1:1 the same type as send from the "backend" 
   - technically all commands need to be of type `Result<T, E>` because there is always the possibility of a command 
@@ -83,42 +83,6 @@ fn main() {
   - when using a return type with `Result` in the name, the function will also return a `Result`
   - that also means, if you create a type alias for `Result<T, E>` and don't include `Result` in the name of the alias, 
     it will not map the `Result` correctly
-
-```rust , ignore-wasm32-unknown-unknown
-// let _: () = trigger_something();
-#[tauri_interop::command]
-fn trigger_something(name: &str) {
-    print!("triggers something, but doesn't need to wait for it")
-}
-
-// let value: String = wait_for_sync_execution("value").await;
-#[tauri_interop::command]
-fn wait_for_sync_execution(value: &str) -> String {
-    format!("Has to wait that the backend completes the computation and returns the {value}")
-}
-
-// let result: Result<String, String> = asynchronous_execution(true).await;
-#[tauri_interop::command]
-async fn await_heavy_computing() { 
-    std::thread::sleep(std::time::Duration::from_millis(5000))
-}
-
-// let result: Result<String, String> = asynchronous_execution(true).await;
-#[tauri_interop::command]
-async fn asynchronous_execution(change: bool) -> Result<String, String> {
-    if change {
-        Ok("asynchronous execution returning result, need Result in their type name".into())
-    } else {
-        Err("if they don't it, the error will be not be parsed/handled".into())
-    }
-}
-
-// let _wait_for_completion: () = heavy_computation().await;
-#[tauri_interop::command]
-async fn heavy_computation() {
-  std::thread::sleep(std::time::Duration::from_millis(5000))
-}
-```
 
 #### Collect commands
 

@@ -22,13 +22,18 @@ mod event;
 /// The field values inside the struct require to be self owned.
 /// That means references aren't allowed inside the event struct.
 ///
-/// Depending on the targeted architecture the macro generates
-/// different results. When compiling to `wasm` the [Listen] trait is
-/// derived. Otherwise, [Emit] is derived.
+/// Depending on the targeted architecture the macro generates different results.
+/// When compiling to `wasm` the [Listen] trait is derived. Otherwise, [Emit] is derived.
 ///
-/// Both traits generate a new mod in which the related field-structs
-/// are generated in. The field-struct represent a field of the struct
-/// and are used for the derived trait functions.
+/// Both traits generate a new mod in which the related field-structs are generated in.
+/// The mod can be automatically renamed with `#[auto_naming(EnumLike)]` to behave
+/// enum-like (for example a struct `Test`s mod would usually be named `test`, 'EnumLike'
+/// names it `TestField` instead) and `#[mod_name(...)]` is a direct possibility to rename
+/// the mod to any given name.
+///
+/// The generated field-structs represent a field of the struct and are used for the
+/// derived trait functions. The fields are used to `emit`, `update` or `listen_to` a
+/// given field. For detail usages see the individual traits defined in `tauri-interop`.
 ///
 /// ### Example
 ///
@@ -109,6 +114,40 @@ lazy_static::lazy_static! {
 static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
 
 /// Conditionally adds the [binding] or `tauri::command` macro to a struct
+///
+/// ### Example
+///
+/// The commands above the commands is the equivalent usage in wasm
+///
+/// ```rust
+/// // let _: () = trigger_something();
+/// #[tauri_interop::command]
+/// fn trigger_something(name: &str) {
+///     print!("triggers something, but doesn't need to wait for it")
+/// }
+///
+/// // let value: String = wait_for_sync_execution("value").await;
+/// #[tauri_interop::command]
+/// fn wait_for_sync_execution(value: &str) -> String {
+///     format!("Has to wait that the backend completes the computation and returns the {value}")
+/// }
+///
+/// // let result: Result<String, String> = asynchronous_execution(true).await;
+/// #[tauri_interop::command]
+/// async fn asynchronous_execution(change: bool) -> Result<String, String> {
+///     if change {
+///         Ok("asynchronous execution returning result, need Result in their type name".into())
+///     } else {
+///         Err("if they don't it, the error will be not be parsed/handled".into())
+///     }
+/// }
+///
+/// // let _wait_for_completion: () = heavy_computation().await;
+/// #[tauri_interop::command]
+/// async fn heavy_computation() {
+///   std::thread::sleep(std::time::Duration::from_millis(5000))
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = parse_macro_input!(stream as ItemFn);
@@ -230,6 +269,12 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
 ///
 /// tauri_interop_macro::combine_handlers!( cmd1, whatever::cmd2 );
 ///
+/// fn main() {
+///     let _ = tauri::Builder::default()
+///     // This is where you pass in the combined handler collector
+///     // in this example it will register cmd1::cmd1 and whatever::cmd2::cmd2
+///         .invoke_handler(get_all_handlers());
+/// }
 /// ```
 #[proc_macro_error]
 #[proc_macro]
