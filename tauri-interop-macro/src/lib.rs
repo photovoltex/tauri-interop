@@ -151,14 +151,20 @@ pub fn commands(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
 ///
 /// ### Example
 ///
-/// The following will generate a function name `get_handlers` that registers `cmd1` when
-/// used in [tauri::Builder::invoke_handler](https://docs.rs/tauri/latest/tauri/struct.Builder.html#method.invoke_handler)
-///
 /// ```
 /// #[tauri_interop_macro::command]
-/// pub fn cmd1() {}
+/// fn greet(name: &str) -> String {
+///     format!("Hello, {}! You've been greeted from Rust!", name)
+/// }
 ///
 /// tauri_interop_macro::collect_commands!();
+///
+/// fn main() {
+///     let _ = tauri::Builder::default()
+///     // This is where you pass in the generated handler collector
+///     // in this example this would only register cmd1
+///         .invoke_handler(get_handlers());
+/// }
 /// ```
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
