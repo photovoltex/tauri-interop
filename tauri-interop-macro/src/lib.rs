@@ -1,14 +1,19 @@
+#![feature(iter_intersperse)]
 #![warn(missing_docs)]
 //! The macros use by `tauri_interop` to generate dynamic code depending on the target
 
 use proc_macro::TokenStream;
-use std::{collections::BTreeSet, sync::Mutex};
+use std::collections::HashSet;
+use std::sync::Mutex;
 
+use proc_macro_error::{emit_call_site_error, emit_call_site_warning, proc_macro_error};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse::Parser, parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, ItemUse,
+    parse::Parser, parse_macro_input, punctuated::Punctuated, ExprPath, ItemFn, ItemMod, ItemUse,
     Token,
 };
+
+use crate::command::collect::commands_to_punctuated;
 
 mod command;
 mod event;
@@ -70,15 +75,21 @@ pub fn binding(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
 }
 
 lazy_static::lazy_static! {
-    static ref HANDLER_LIST: Mutex<BTreeSet<String>> = Mutex::new(Default::default());
+    static ref COMMAND_LIST_ALL: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
 }
 
-/// Conditionally adds `tauri_interop::binding` or `tauri::command` to a struct
+lazy_static::lazy_static! {
+    static ref COMMAND_LIST: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+}
+
+static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
+
+/// Conditionally adds the `tauri_interop::binding` or `tauri::command` macro to a struct
 #[proc_macro_attribute]
 pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = parse_macro_input!(stream as ItemFn);
 
-    HANDLER_LIST
+    COMMAND_LIST
         .lock()
         .unwrap()
         .insert(fn_item.sig.ident.to_string());
@@ -92,30 +103,146 @@ pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
     TokenStream::from(command_macro.to_token_stream())
 }
 
-/// Collects all commands annotated with `tauri_interop::command` and
-/// provides these with a `get_handlers()` in the current namespace
+/// Marks a mod that contains commands
 ///
-/// The provided function isn't available for wasm
+/// A mod needs to be marked when multiple command mods should be combined.
+/// See [combine_handlers] for a detailed explanation/example.
+///
+/// Requires usage of unstable feature: `#![feature(proc_macro_hygiene)]`
+#[proc_macro_attribute]
+pub fn commands(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
+    let item_mod = parse_macro_input!(stream as ItemMod);
+    let _ = COMMAND_MOD_NAME
+        .lock()
+        .unwrap()
+        .insert(item_mod.ident.to_string());
+
+    TokenStream::from(item_mod.to_token_stream())
+}
+
+/// Collects all commands annotated with `tauri_interop::command` and
+/// provides these with a `get_handlers()` in the current mod
+///
+/// The provided function isn't available in wasm
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
-    let handler = HANDLER_LIST.lock().unwrap();
-    let to_generated_handler = handler
-        .iter()
-        .map(|s| format_ident!("{s}"))
-        .collect::<Punctuated<Ident, Comma>>();
+    let mut commands = COMMAND_LIST.lock().unwrap();
+    let stream = command::collect::get_handler_function(
+        format_ident!("get_handlers"),
+        &commands,
+        commands_to_punctuated(&commands),
+        Vec::new(),
+    );
 
-    let stream = quote! {
-        #[cfg(not(target_family = "wasm"))]
-        /// the all mighty handler collector
-        pub fn get_handlers() -> impl Fn(tauri::Invoke) {
-            let handlers = vec! [ #( #handler ),* ];
-            log::debug!("Registering following commands to tauri: {handlers:#?}");
+    // logic for renaming the commands, so that combine methode can just use the provided commands
+    if let Some(mod_name) = COMMAND_MOD_NAME.lock().unwrap().as_ref() {
+        COMMAND_LIST_ALL
+            .lock()
+            .unwrap()
+            .extend(command::collect::commands_with_mod_name(
+                mod_name, &commands,
+            ));
+    } else {
+        // if there is no mod provided we can just move/clear the commands
+        COMMAND_LIST_ALL.lock().unwrap().extend(commands.iter().cloned());
+    }
 
-            ::tauri::generate_handler![ #to_generated_handler ]
-        }
-    };
+    // clearing the already used handlers
+    commands.clear();
+    // set mod name to none
+    let _ = COMMAND_MOD_NAME.lock().unwrap().take();
 
     TokenStream::from(stream.to_token_stream())
+}
+
+/// Combines multiple modules containing commands
+///
+/// Takes multiple module paths as input and provides a `get_all_handlers()` function in
+/// the current mod that registers all commands from the provided mods. This macro does
+/// still require the invocation of [collect_commands] at the end of a command mod. In
+/// addition, a mod has to be marked with [commands].
+///
+/// ### Example
+///
+/// ```
+/// #[tauri_interop_macro::commands]
+/// mod cmd1 {
+///     #[tauri_interop_macro::command]
+///     pub fn cmd1() {}
+///
+///     tauri_interop_macro::collect_commands!();
+/// }
+///
+/// mod whatever {
+///     #[tauri_interop_macro::commands]
+///     pub mod cmd2 {
+///         #[tauri_interop_macro::command]
+///         pub fn cmd2() {}
+///
+///         tauri_interop_macro::collect_commands!();
+///     }
+/// }
+///
+/// tauri_interop_macro::combine_handlers!( cmd1, whatever::cmd2 );
+///
+/// ```
+#[proc_macro_error]
+#[proc_macro]
+pub fn combine_handlers(stream: TokenStream) -> TokenStream {
+    let command_mods = Punctuated::<ExprPath, Token![,]>::parse_terminated
+        .parse2(stream.into())
+        .unwrap()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    let org_commands = COMMAND_LIST_ALL.lock().unwrap();
+    let commands = org_commands
+        .iter()
+        .flat_map(|command| {
+            let (mod_name, _) = command::collect::get_separated_command(command)?;
+            command_mods
+                .iter()
+                .any(|r#mod| {
+                    r#mod
+                        .path
+                        .segments
+                        .iter()
+                        .any(|seg| mod_name.eq(&seg.ident))
+                })
+                .then_some(command.clone())
+        })
+        .collect::<HashSet<_>>();
+
+    if commands.is_empty() {
+        emit_call_site_error!("No commands will be registered")
+    }
+
+    let remaining_commands = COMMAND_LIST.lock().unwrap();
+    if !remaining_commands.is_empty() {
+        emit_call_site_error!(
+            "Their are dangling commands that won't be registered. See {:?}",
+            remaining_commands
+        )
+    }
+
+    if org_commands.len() > commands.len() {
+        let diff = org_commands
+            .difference(&commands)
+            .cloned()
+            .intersperse(String::from(","))
+            .collect::<String>();
+        emit_call_site_warning!(
+            "Not all commands will be registered. Missing commands: {:?}",
+            diff
+        );
+    }
+
+    TokenStream::from(command::collect::get_handler_function(
+        format_ident!("get_all_handlers"),
+        &commands,
+        commands_to_punctuated(&commands),
+        command_mods,
+    ))
 }
 
 fn collect_uses(stream: TokenStream) -> Vec<ItemUse> {

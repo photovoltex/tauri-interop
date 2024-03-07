@@ -47,8 +47,11 @@ fn App() -> impl IntoView {
 
     let bar = TestState::use_field::<test_mod::Bar>(true);
 
+    let exit = move |_| api::model::other_cmd::stop_application();
+
     view! {
         <div>
+            <button on:click=exit>Exit</button>
             <Foo/>
             {move || if bar.get() {
                 Foo.into_view()

@@ -65,11 +65,8 @@ Using `tauri_interop::command` does two things:
 - it provides the command with two macros which are used depending on the `target_family`
   - `tauri_interop::binding` is used when compiling to `wasm`
   - `tauri::command` is used otherwise
-- it adds an entry to `tauri_interop::collect_commands!()` so that the generated `get_handlers()` function includes 
-  the given commands for the tauri context
-  - it can be invoked inside `.invoke_handler` methode of the `tauri::Builder` instead of the usual `generate_handler` macro
-  - it is not generated when targeting `wasm`
-  
+- it adds an entry to `tauri_interop::collect_commands!()` (see [collect commands](#collect-commands))
+  - the function is not generated when targeting `wasm`
 
 The defined command above can then be used in wasm as below. Due to receiving data from 
 tauri via a promise, the command response has to be awaited.
@@ -139,6 +136,25 @@ async fn heavy_computation() {
   std::thread::sleep(std::time::Duration::from_millis(5000))
 }
 ```
+
+#### Collect commands
+
+The `tauri_invoke::collect_commands` macro generates a `get_handlers` function in the current mod, which calls the 
+`tauri::generate_handler` macro with all function which are annotated with the `tauri_interop::command` macro. The 
+function is only generated for tauri and not for wasm.
+
+Due to technical limitations we sadly can't combine multiple `get_handlers` functions. This limitation comes to the 
+underlying mechanic. The `tauri::generate_handler` macro generates a function which consumes `tauri::Invoke` as single 
+parameter. Because it fully consumes the given parameter we can't call multiple handlers with it. In addition, the 
+`Builder::invoke_handler` function, which usually consumes the generated `tauri::generate_handler` can't be called 
+twice without losing the previous registered commands.
+
+Because of this limitation for splitting commands into multiple files it is recommended to create a root mod for the 
+command which includes other command mod's. The functions in the included mods need to be public and re-imported into 
+the root mod. With these prerequisites the `tauri_invoke::collect_commands` can be called at the end of the file, which
+generates the usual `get_handlers` function, but with all "commands" defined inside the others mods.
+
+For an example see the [test-project/api/src/command.rs](test-project/api/src/command.rs).
 
 ### QOL macros
 

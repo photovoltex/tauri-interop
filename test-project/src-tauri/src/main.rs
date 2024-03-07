@@ -10,7 +10,7 @@ fn main() {
         .unwrap();
 
     tauri::Builder::default()
-        .invoke_handler(api::cmd::get_handlers())
+        .invoke_handler(api::get_all_handlers())
         .setup(move |app| {
             let main_window = app.handle().get_window("main").unwrap();
 
