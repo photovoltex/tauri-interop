@@ -22,7 +22,7 @@ mod event;
 #[cfg(feature = "event")]
 #[proc_macro_derive(Event, attributes(auto_naming, mod_name))]
 pub fn derive_event(stream: TokenStream) -> TokenStream {
-    if cfg!(feature = "wasm") {
+    if cfg!(feature = "_wasm") {
         event::listen::derive(stream)
     } else {
         event::emit::derive(stream)

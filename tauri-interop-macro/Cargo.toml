@@ -31,4 +31,4 @@ default = [ "event" ]
 leptos  = [ "event" ]
 event   = []
 # feature to get info that context is wasm
-wasm    = []
+_wasm   = []
