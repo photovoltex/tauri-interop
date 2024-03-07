@@ -30,7 +30,7 @@ pub enum ListenError {
     NotAFunction(JsValue),
 }
 
-/// Handle which holds the unlisten function and the correlated callback
+/// Handle which holds the function to detach the listener and the correlated callback
 pub struct ListenHandle {
     /// The callback which is invoked for the registered event
     ///

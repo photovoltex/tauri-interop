@@ -9,8 +9,7 @@ use std::sync::Mutex;
 use proc_macro_error::{emit_call_site_error, emit_call_site_warning, proc_macro_error};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse::Parser, parse_macro_input, punctuated::Punctuated, ExprPath, ItemFn, ItemMod, ItemUse,
-    Token,
+    parse::Parser, parse_macro_input, punctuated::Punctuated, ExprPath, ItemFn, ItemMod, Token,
 };
 
 use crate::command::collect::commands_to_punctuated;
@@ -18,7 +17,34 @@ use crate::command::collect::commands_to_punctuated;
 mod command;
 mod event;
 
-/// Conditionally adds [Listen] or [Emit] to a struct
+/// Conditionally adds [Listen] or [Emit] to a struct.
+///
+/// The field values inside the struct require to be self owned.
+/// That means references aren't allowed inside the event struct.
+///
+/// Depending on the targeted architecture the macro generates
+/// different results. When compiling to `wasm` the [Listen] trait is
+/// derived. Otherwise, [Emit] is derived.
+///
+/// Both traits generate a new mod in which the related field-structs
+/// are generated in. The field-struct represent a field of the struct
+/// and are used for the derived trait functions.
+///
+/// ### Example
+///
+/// ```
+/// use tauri_interop_macro::Event;
+///
+/// #[derive(Event)]
+/// struct EventModel {
+///     foo: String,
+///     pub bar: bool
+/// }
+///
+/// // has to be defined in this example, otherwise the
+/// // macro expansion panics because of missing super
+/// fn main() {}
+/// ```
 #[cfg(feature = "event")]
 #[proc_macro_derive(Event, attributes(auto_naming, mod_name))]
 pub fn derive_event(stream: TokenStream) -> TokenStream {
@@ -29,11 +55,10 @@ pub fn derive_event(stream: TokenStream) -> TokenStream {
     }
 }
 
-/// Generates a default `Emit` implementation for the given struct with a
-/// correlation enum, mod and field-structs for emitting a single field of
-/// the struct.
+/// Generates a default `Emit` implementation for the given struct.
 ///
-/// Used for host code generation.
+/// Used for host code generation. It is not intended to be used directly.
+/// See [Event]
 #[cfg(feature = "event")]
 #[proc_macro_derive(Emit, attributes(auto_naming, mod_name))]
 pub fn derive_emit(stream: TokenStream) -> TokenStream {
@@ -42,17 +67,16 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
 
 /// Generates a default `EmitField` implementation for the given struct.
 ///
-/// Used for host code generation.
+/// Used for host code generation. It is not intended to be used directly.
 #[cfg(feature = "event")]
 #[proc_macro_derive(EmitField, attributes(parent, parent_field_name, parent_field_ty))]
 pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     event::emit::derive_field(stream)
 }
 
-/// Generates `listen_to_<field>` functions for the given
-/// struct for the correlating host code.
+/// Generates `listen_to_<field>` functions for the given struct.
 ///
-/// Used for wasm code generation
+/// Used for wasm code generation. It is not intended to be used directly.
 #[cfg(feature = "event")]
 #[proc_macro_derive(Listen, attributes(auto_naming, mod_name))]
 pub fn derive_listen(stream: TokenStream) -> TokenStream {
@@ -61,7 +85,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
 
 /// Generates a default `ListenField` implementation for the given struct.
 ///
-/// Used for wasm code generation.
+/// Used for wasm code generation. It is not intended to be used directly.
 #[cfg(feature = "event")]
 #[proc_macro_derive(ListenField, attributes(parent, parent_field_ty))]
 pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
@@ -84,7 +108,7 @@ lazy_static::lazy_static! {
 
 static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
 
-/// Conditionally adds the `tauri_interop::binding` or `tauri::command` macro to a struct
+/// Conditionally adds the [binding] or `tauri::command` macro to a struct
 #[proc_macro_attribute]
 pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
     let fn_item = parse_macro_input!(stream as ItemFn);
@@ -95,7 +119,7 @@ pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
         .insert(fn_item.sig.ident.to_string());
 
     let command_macro = quote! {
-        #[cfg_attr(target_family = "wasm", tauri_interop::binding)]
+        #[cfg_attr(target_family = "wasm", ::tauri_interop::binding)]
         #[cfg_attr(not(target_family = "wasm"), tauri::command(rename_all = "snake_case"))]
         #fn_item
     };
@@ -106,7 +130,7 @@ pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
 /// Marks a mod that contains commands
 ///
 /// A mod needs to be marked when multiple command mods should be combined.
-/// See [combine_handlers] for a detailed explanation/example.
+/// See [combine_handlers!] for a detailed explanation/example.
 ///
 /// Requires usage of unstable feature: `#![feature(proc_macro_hygiene)]`
 #[proc_macro_attribute]
@@ -124,6 +148,18 @@ pub fn commands(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
 /// provides these with a `get_handlers()` in the current mod
 ///
 /// The provided function isn't available in wasm
+///
+/// ### Example
+///
+/// The following will generate a function name `get_handlers` that registers `cmd1` when
+/// used in [tauri::Builder::invoke_handler](https://docs.rs/tauri/latest/tauri/struct.Builder.html#method.invoke_handler)
+///
+/// ```
+/// #[tauri_interop_macro::command]
+/// pub fn cmd1() {}
+///
+/// tauri_interop_macro::collect_commands!();
+/// ```
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
     let mut commands = COMMAND_LIST.lock().unwrap();
@@ -144,7 +180,10 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
             ));
     } else {
         // if there is no mod provided we can just move/clear the commands
-        COMMAND_LIST_ALL.lock().unwrap().extend(commands.iter().cloned());
+        COMMAND_LIST_ALL
+            .lock()
+            .unwrap()
+            .extend(commands.iter().cloned());
     }
 
     // clearing the already used handlers
@@ -159,8 +198,8 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
 ///
 /// Takes multiple module paths as input and provides a `get_all_handlers()` function in
 /// the current mod that registers all commands from the provided mods. This macro does
-/// still require the invocation of [collect_commands] at the end of a command mod. In
-/// addition, a mod has to be marked with [commands].
+/// still require the invocation of [collect_commands!] at the end of a command mod. In
+/// addition, a mod has to be marked with [macro@commands].
 ///
 /// ### Example
 ///
@@ -196,22 +235,7 @@ pub fn combine_handlers(stream: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let org_commands = COMMAND_LIST_ALL.lock().unwrap();
-    let commands = org_commands
-        .iter()
-        .flat_map(|command| {
-            let (mod_name, _) = command::collect::get_separated_command(command)?;
-            command_mods
-                .iter()
-                .any(|r#mod| {
-                    r#mod
-                        .path
-                        .segments
-                        .iter()
-                        .any(|seg| mod_name.eq(&seg.ident))
-                })
-                .then_some(command.clone())
-        })
-        .collect::<HashSet<_>>();
+    let commands = command::collect::get_filtered_commands(&org_commands, &command_mods);
 
     if commands.is_empty() {
         emit_call_site_error!("No commands will be registered")
@@ -245,18 +269,22 @@ pub fn combine_handlers(stream: TokenStream) -> TokenStream {
     ))
 }
 
-fn collect_uses(stream: TokenStream) -> Vec<ItemUse> {
-    Punctuated::<ItemUse, Token![|]>::parse_terminated
-        .parse2(stream.into())
-        .unwrap()
-        .into_iter()
-        .collect::<Vec<_>>()
-}
-
 /// Simple macro to include multiple imports (seperated by `|`) not in wasm
+///
+/// ### Example
+///
+/// ```rust
+/// tauri_interop_macro::host_usage! {
+///     use tauri::State;
+///     | use std::sync::RwLock;
+/// }
+///
+/// #[tauri_interop_macro::command]
+/// pub fn empty_invoke(_state: State<RwLock<String>>) {}
+/// ```
 #[proc_macro]
 pub fn host_usage(stream: TokenStream) -> TokenStream {
-    let uses = collect_uses(stream);
+    let uses = command::collect::uses(stream);
     TokenStream::from(quote! {
         #(
             #[cfg(not(target_family = "wasm"))]
@@ -266,9 +294,12 @@ pub fn host_usage(stream: TokenStream) -> TokenStream {
 }
 
 /// Simple macro to include multiple imports (seperated by `|`) only in wasm
+///
+/// Equivalent to [host_usage!] for wasm imports only required in wasm.
+/// For an example see [host_usage!].
 #[proc_macro]
 pub fn wasm_usage(stream: TokenStream) -> TokenStream {
-    let uses = collect_uses(stream);
+    let uses = command::collect::uses(stream);
     TokenStream::from(quote! {
         #(
             #[cfg(target_family = "wasm")]
