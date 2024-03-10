@@ -1,6 +1,8 @@
 #![feature(iter_intersperse)]
 #![warn(missing_docs)]
-//! The macros use by `tauri_interop` to generate dynamic code depending on the target
+//! The macros use by `tauri-interop` to generate dynamic code depending on the target
+//!
+//! Without `tauri-interop` the generated code can't compile.
 
 use proc_macro::TokenStream;
 use std::collections::HashSet;
@@ -63,7 +65,7 @@ pub fn derive_event(stream: TokenStream) -> TokenStream {
 /// Generates a default `Emit` implementation for the given struct.
 ///
 /// Used for host code generation. It is not intended to be used directly.
-/// See [Event]
+/// See [Event] for the usage.
 #[cfg(feature = "event")]
 #[proc_macro_derive(Emit, attributes(auto_naming, mod_name))]
 pub fn derive_emit(stream: TokenStream) -> TokenStream {
@@ -79,9 +81,10 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
     event::emit::derive_field(stream)
 }
 
-/// Generates `listen_to_<field>` functions for the given struct.
+/// Generates an implementation of [tauri_interop::Event]
 ///
 /// Used for wasm code generation. It is not intended to be used directly.
+/// See [Event] for the usage.
 #[cfg(feature = "event")]
 #[proc_macro_derive(Listen, attributes(auto_naming, mod_name))]
 pub fn derive_listen(stream: TokenStream) -> TokenStream {
@@ -113,26 +116,40 @@ lazy_static::lazy_static! {
 
 static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
 
-/// Conditionally adds the [binding] or `tauri::command` macro to a struct
+/// Conditionally adds the macro [macro@binding] or `tauri::command` to a struct
 ///
-/// ### Example
+/// By using this macro, when compiling to wasm, a version that invokes the 
+/// current function is generated.
+/// 
+/// ### Collecting commands
+/// When this macro is compiled to the host target, additionally to adding the
+/// `tauri::command` macro, the option to auto collect the command via 
+/// [macro@collect_commands] and [macro@combine_handlers] is provided.
 ///
-/// The commands above the commands is the equivalent usage in wasm
+/// ### Binding generation
+/// All parameter arguments with `tauri` in their name (case-insensitive) are 
+/// removed as argument in a defined command. That includes `tauri::*` usages 
+/// and `Tauri` named types.
+///  
+/// The type returned is evaluated automatically and is most of the time 1:1 
+/// to the defined type. When using a wrapped `Result<T, E>` type, it should
+/// include the phrase "Result" in the type name. Otherwise, the returned type
+/// can't be successfully interpreted as a result and by that will result in
+/// wrong type/error handling/serialization.
+/// 
+/// ### Example - Definition
 ///
 /// ```rust
-/// // let _: () = trigger_something();
 /// #[tauri_interop::command]
 /// fn trigger_something(name: &str) {
 ///     print!("triggers something, but doesn't need to wait for it")
 /// }
 ///
-/// // let value: String = wait_for_sync_execution("value").await;
 /// #[tauri_interop::command]
 /// fn wait_for_sync_execution(value: &str) -> String {
 ///     format!("Has to wait that the backend completes the computation and returns the {value}")
 /// }
 ///
-/// // let result: Result<String, String> = asynchronous_execution(true).await;
 /// #[tauri_interop::command]
 /// async fn asynchronous_execution(change: bool) -> Result<String, String> {
 ///     if change {
@@ -142,10 +159,23 @@ static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
 ///     }
 /// }
 ///
-/// // let _wait_for_completion: () = heavy_computation().await;
 /// #[tauri_interop::command]
 /// async fn heavy_computation() {
 ///   std::thread::sleep(std::time::Duration::from_millis(5000))
+/// }
+/// ```
+/// 
+/// ### Example - Usage
+/// 
+/// ```rust , ignore
+/// fn main() {
+///     trigger_something();
+/// 
+///     wasm_bindgen_futures::spawn_local(async move {
+///         wait_for_sync_execution("value").await;
+///         asynchronous_execution(true).await.expect("returns ok");
+///         heavy_computation().await;
+///     });
 /// }
 /// ```
 #[proc_macro_attribute]
