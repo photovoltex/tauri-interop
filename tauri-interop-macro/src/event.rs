@@ -78,6 +78,7 @@ struct Field {
     name: Ident,
     attributes: FieldAttributes,
     event_name: String,
+    get_cmd: Ident,
 }
 
 struct FieldAttributes {
@@ -117,10 +118,12 @@ fn prepare_field(derive_input: DeriveInput) -> Field {
     let name = derive_input.ident.clone();
     let attributes = get_field_values(derive_input.attrs);
     let event_name = format!("{}::{}", &attributes.parent, &name);
+    let get_cmd = format_ident!("get_{}_{}", &attributes.parent, name);
 
     Field {
         event_name,
         name,
         attributes,
+        get_cmd
     }
 }

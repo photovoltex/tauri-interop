@@ -87,22 +87,32 @@ impl ListenHandle {
 
     /// Registers a given event and binds a returned signal to these event changes
     ///
+    /// Providing [None] will unwrap into the default value. When feature `initial_value` 
+    /// is enabled [None] will try to get the value from tauri.
+    /// 
     /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
     /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
-    pub fn use_register<T>(event: &'static str, initial_value: T) -> ReadSignal<T>
-    where
-        T: DeserializeOwned,
+    pub fn use_register<P, F: Field<P>>(initial_value: Option<F::Type>) -> ReadSignal<F::Type>
+        where P: Sized + super::Parent
     {
         use leptos::SignalSet;
 
-        let (signal, set_signal) = leptos::create_signal(initial_value);
+        let acquire_initial_value = initial_value.is_none();
+        let (signal, set_signal) = leptos::create_signal(initial_value.unwrap_or_default());
 
         // creating this signal in a leptos component holds the value in scope, and drops it automatically
         let handle = leptos::create_rw_signal(None);
         leptos::spawn_local(async move {
-            let listen_handle = ListenHandle::register(event, move |value: T| {
-                log::trace!("update for {}", event);
+            if cfg!(feature = "initial_value") && acquire_initial_value {
+                match F::get_value().await {
+                    Ok(value) => set_signal.set(value),
+                    Err(why) => log::error!("{why}")
+                }
+            }
+            
+            let listen_handle = ListenHandle::register(F::EVENT_NAME, move |value: F::Type| {
+                log::trace!("update for {}", F::EVENT_NAME);
                 set_signal.set(value)
             })
             .await
@@ -172,10 +182,10 @@ pub trait Listen {
     /// }
     /// ```
     #[cfg(feature = "leptos")]
-    fn use_field<F: Field<Self>>(initial: F::Type) -> ReadSignal<F::Type>
+    fn use_field<F: Field<Self>>(initial: Option<F::Type>) -> ReadSignal<F::Type>
     where
         Self: Sized + super::Parent,
     {
-        ListenHandle::use_register(F::EVENT_NAME, initial)
+        ListenHandle::use_register::<Self, F>(initial)
     }
 }

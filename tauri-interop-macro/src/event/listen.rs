@@ -50,6 +50,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
         name,
         attributes,
         event_name,
+        get_cmd
     } = super::prepare_field(derive_input);
 
     let FieldAttributes {
@@ -58,10 +59,26 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
         ..
     } = attributes;
 
+    let get_cmd_fn = cfg!(feature = "initial_value").then_some(quote! {
+            #[allow(non_snake_case)]
+            #[tauri_interop::command]
+            pub fn #get_cmd() -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {}
+        }).unwrap_or_default();
+    
+    let get_value = cfg!(feature = "initial_value").then_some(quote! {
+        async fn get_value() -> Result<Self::Type, ::tauri_interop::event::EventError> {
+            #get_cmd().await
+        }
+    }).unwrap_or_default();
+
     let stream = quote! {
+        #get_cmd_fn
+        
         impl Field<#parent> for #name {
             type Type = #parent_field_ty;
             const EVENT_NAME: &'static str = #event_name;
+            
+            #get_value
         }
     };
 

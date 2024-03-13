@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tauri-interop = { path = "../..", default-features = false, features = [ "event" ]}
+tauri-interop = { path = "../..", default-features = false, features = ["event", "initial_value"] }
 
 # common
 log = "0.4"

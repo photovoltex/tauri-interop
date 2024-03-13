@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 #[cfg(not(target_family = "wasm"))]
 use tauri::{AppHandle, Error, Wry};
 
@@ -36,13 +36,26 @@ pub trait Parent = Listen;
 pub trait Field<P>
 where
     P: Parent,
-    <Self as Field<P>>::Type: Clone + Serialize + DeserializeOwned,
+    <Self as Field<P>>::Type: Default + Clone + Serialize + DeserializeOwned,
 {
     /// The type of the field
     type Type;
 
     /// The event of the field
     const EVENT_NAME: &'static str;
+
+    /// Tries to retrieve the current value from the backend
+    ///
+    /// only in wasm available
+    #[allow(async_fn_in_trait)]
+    #[cfg(any(all(target_family = "wasm", feature = "initial_value"), doc))]
+    async fn get_value() -> Result<Self::Type, EventError>;
+
+    /// Gets the value from the given parent
+    ///
+    /// not in wasm available
+    #[cfg(not(target_family = "wasm"))]
+    fn get_value(parent: &P) -> Self::Type;
 
     #[cfg(not(target_family = "wasm"))]
     /// Emits event of the related field with their value
@@ -55,4 +68,12 @@ where
     ///
     /// not in wasm available
     fn update(s: &mut P, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
+}
+
+/// General errors that can happen during event exchange
+#[derive(Debug, Serialize, Deserialize, thiserror::Error)]
+pub enum EventError {
+    /// The given name (struct) is not as tauri::State registered
+    #[error("{0} is not as tauri state registered")]
+    StateIsNotRegistered(String),
 }

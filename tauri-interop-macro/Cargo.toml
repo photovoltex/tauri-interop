@@ -31,7 +31,8 @@ tauri-interop = { path = ".." }
 [features]
 # todo: remove default feature before publish
 default = [ "event" ]
-leptos  = [ "event" ]
 event   = []
+leptos  = []
+initial_value = []
 # feature to get info that context is wasm
 _wasm   = []

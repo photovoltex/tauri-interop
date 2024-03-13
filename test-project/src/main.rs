@@ -45,7 +45,7 @@ fn main() {
 fn App() -> impl IntoView {
     use leptos::SignalGet;
 
-    let bar = TestState::use_field::<test_mod::Bar>(true);
+    let bar = TestState::use_field::<test_mod::Bar>(Some(true));
 
     let exit = move |_| api::model::other_cmd::stop_application();
 
@@ -71,7 +71,7 @@ fn Foo() -> impl IntoView {
         api::cmd::emit();
     }).forget();
 
-    let foo = TestState::use_field::<test_mod::Foo>("Test".into());
+    let foo = TestState::use_field::<test_mod::Foo>(None);
 
     view! { <h1>{foo}</h1> }
 }

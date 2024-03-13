@@ -309,6 +309,10 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
 #[proc_macro_error]
 #[proc_macro]
 pub fn combine_handlers(stream: TokenStream) -> TokenStream {
+    if cfg!(feature = "_wasm") {
+        return Default::default()
+    }
+    
     let command_mods = Punctuated::<ExprPath, Token![,]>::parse_terminated
         .parse2(stream.into())
         .unwrap()
