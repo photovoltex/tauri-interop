@@ -1,6 +1,17 @@
 use tauri::{AppHandle, Error, Wry};
 
 use super::Field;
+#[cfg(doc)]
+use super::Listen;
+
+/// The trait which needs to be implemented for a [Field]
+///
+/// Conditionally changes between [Listen] and [Emit]
+///
+/// - When compiled to "target_family = wasm", the trait alias is set to [Listen]
+/// - Otherwise the trait alias is set to [Emit]
+#[cfg(any(not(feature = "initial_value"), doc))]
+pub trait Parent = Emit;
 
 /// Trait that defines the available event emitting methods
 pub trait Emit {

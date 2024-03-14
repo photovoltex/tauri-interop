@@ -15,23 +15,6 @@ mod emit;
 #[cfg(any(target_family = "wasm", doc))]
 mod listen;
 
-/// The trait which needs to be implemented for a [Field]
-///
-/// Conditionally changes between [Listen] and [Emit]
-///
-/// When compiled to "target_family = wasm" then following is true.
-/// ```ignore
-/// trait Parent = listen::Listen;
-/// ```
-#[cfg(not(target_family = "wasm"))]
-pub trait Parent = Emit;
-
-/// The trait which needs to be implemented for a [Field]
-///
-/// Conditionally changes between [Listen] and [Emit]
-#[cfg(target_family = "wasm")]
-pub trait Parent = Listen;
-
 /// Trait defining a [Field] to a related struct implementing [Parent] with the related [Field::Type]
 pub trait Field<P>
 where

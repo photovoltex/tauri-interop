@@ -6,7 +6,15 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::command::bindings::listen;
 
+#[cfg(doc)]
+use super::Emit;
 use super::Field;
+
+/// The trait which needs to be implemented for a [Field]
+///
+/// Conditionally changes between [Listen] and [Emit]
+#[cfg(target_family = "wasm")]
+pub trait Parent = Listen;
 
 /// The result type that is returned by [ListenHandle::register]
 pub type ListenResult = Result<ListenHandle, ListenError>;
