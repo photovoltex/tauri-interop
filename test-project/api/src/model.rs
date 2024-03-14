@@ -3,9 +3,11 @@
 #![allow(path_statements)]
 
 // this mod at this position doesn't make much sense logic vise
-// for testing the combine feature tho its a quite convienend spot :D
+// for testing the combine feature tho it's a quite convenient spot :D
 #[tauri_interop::commands]
 pub mod other_cmd;
+#[cfg(not(target_family = "wasm"))]
+mod host_impl;
 
 use tauri_interop::Event;
 

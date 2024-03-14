@@ -19,7 +19,7 @@ mod listen;
 pub trait Field<P>
 where
     P: Parent,
-    <Self as Field<P>>::Type: Default + Clone + Serialize + DeserializeOwned,
+    Self::Type: Default + Clone + Serialize + DeserializeOwned,
 {
     /// The type of the field
     type Type;
@@ -33,12 +33,6 @@ where
     #[allow(async_fn_in_trait)]
     #[cfg(any(all(target_family = "wasm", feature = "initial_value"), doc))]
     async fn get_value() -> Result<Self::Type, EventError>;
-
-    /// Gets the value from the given parent
-    ///
-    /// not in wasm available
-    #[cfg(not(target_family = "wasm"))]
-    fn get_value(parent: &P) -> Self::Type;
 
     #[cfg(not(target_family = "wasm"))]
     /// Emits event of the related field with their value
