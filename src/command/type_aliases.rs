@@ -1,6 +1,6 @@
 use tauri::{AppHandle, State, Window};
 
-#[allow(unused_imports)]
+#[cfg(doc)]
 use tauri_interop_macro::command;
 
 /// Type alias to easier identify [State] via [command] macro
