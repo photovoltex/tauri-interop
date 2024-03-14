@@ -47,6 +47,8 @@ mod event;
 ///     foo: String,
 ///     pub bar: bool
 /// }
+/// 
+/// impl tauri_interop::event::ManagedEmit for EventModel {}
 ///
 /// // has to be defined in this example, otherwise the
 /// // macro expansion panics because of missing super

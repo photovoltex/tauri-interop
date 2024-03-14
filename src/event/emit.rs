@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Error, Manager, Wry};
+use tauri::{AppHandle, Error, Wry};
 
 use super::Field;
 #[cfg(doc)]
@@ -37,6 +37,8 @@ where
     where
         Self: Sized + Send + Sync,
     {
+        use tauri::Manager;
+
         let state = handle.try_state::<Self>()?;
         let state = get_field_value(&state);
         Some(state)
@@ -57,6 +59,8 @@ pub trait Emit {
     ///     foo: String,
     ///     pub bar: bool,
     /// }
+    /// 
+    /// impl tauri_interop::event::ManagedEmit for Test {}
     ///
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {
@@ -80,6 +84,8 @@ pub trait Emit {
     ///     pub bar: bool,
     /// }
     ///
+    /// impl tauri_interop::event::ManagedEmit for Test {}
+    /// 
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {
     ///     Test::default().emit::<test::Foo>(&handle).expect("emitting failed");
@@ -103,6 +109,9 @@ pub trait Emit {
     ///     foo: String,
     ///     pub bar: bool,
     /// }
+    ///
+    /// // require because we compile 
+    /// impl tauri_interop::event::ManagedEmit for Test {}
     ///
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {

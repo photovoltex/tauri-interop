@@ -61,7 +61,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
 
     let get_cmd_fn = cfg!(feature = "initial_value").then_some(quote! {
             #[allow(non_snake_case)]
-            #[tauri_interop::binding]
+            #[tauri_interop::command]
             pub fn #get_cmd() -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {}
         }).unwrap_or_default();
     
