@@ -26,7 +26,7 @@ log = "^0.4"
 serde = "^1.0"
 # required because the intented usage is to use the main crate,
 # for testing we need the reexported macros from tauri-interop
-tauri-interop = { path = "..", features = ["initial_value"] }
+tauri-interop = { path = "..", features = ["event", "initial_value"] }
 
 [features]
 default = []
