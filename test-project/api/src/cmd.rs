@@ -1,10 +1,17 @@
-#[tauri_interop::host_usage]
-use crate::model::{TestState, TestStateEmit};
-#[tauri_interop::host_usage]
-use std::sync::RwLock;
+tauri_interop::host_usage! {
+    // usually u don't need to exclude the crates inside the api,
+    // but when the type is removed because it is wrapped in a State,
+    // it produced a warning... and we don't like warnings, so we exclude it
+    use crate::model::TestState;
+    | use std::sync::RwLock;
+    | use tauri_interop::command::{TauriAppHandle, TauriState};
+}
 
 #[tauri_interop::command]
 pub fn empty_invoke() {}
+
+#[tauri_interop::command]
+pub fn underscore_invoke(_invoke: u8) {}
 
 #[tauri_interop::command]
 pub async fn await_heavy_computing() {
@@ -12,7 +19,7 @@ pub async fn await_heavy_computing() {
 }
 
 #[tauri_interop::command]
-fn greet(name_to_greet: &str) -> String {
+pub fn greet(name_to_greet: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name_to_greet)
 }
 
@@ -38,38 +45,24 @@ pub fn result_test() -> Result<i32, String> {
 }
 
 #[tauri_interop::command]
-pub fn emit(test_state: tauri::State<RwLock<TestState>>, handle: tauri::AppHandle) {
+pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
+    use tauri_interop::event::Emit;
+    // newly generated mod, renamed to test_mod, default for TestState is test_state
+    use crate::model::test_mod;
+
     log::info!("emit cmd received");
 
-    let mut test_state = test_state.write().unwrap();
+    let mut state = state.write().unwrap();
 
-    if test_state.bar {
-        test_state.update_foo(&handle, "bar".into()).unwrap();
+    let bar_value = !state.bar;
+    let foo_value = if state.bar {
+        "bar"
     } else {
-        test_state.update_foo(&handle, "foo".into()).unwrap();
-    }
+        "foo"
+    };
 
-    test_state.bar = !test_state.bar;
-    test_state.emit(&handle, TestStateEmit::Bar).unwrap();
-
-    test_state.emit_all(&handle).unwrap();
-}
-
-#[cfg(feature = "broken")]
-pub mod broken {
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub enum State {
-        Test,
-    }
-
-    #[allow(clippy::result_unit_err)]
-    /// currently this doesn't work cause of the way tauri::{AppHandel, State, Window} are filtered
-    #[tauri_interop::conditional_command]
-    pub fn invoke_result_tauri(_state: State) -> Result<(), ()> {
-        Ok(())
-    }
+    state.update::<test_mod::Foo>(&handle, foo_value.into()).unwrap();
+    state.update::<test_mod::Bar>(&handle, bar_value).unwrap();
 }
 
 tauri_interop::collect_commands!();

@@ -1,402 +1,396 @@
+#![feature(iter_intersperse)]
 #![warn(missing_docs)]
-//! The macros use by `tauri_interop` to generate dynamic code depending on the target
+//! The macros use by `tauri-interop` to generate dynamic code depending on the target
+//!
+//! Without `tauri-interop` the generated code can't compile.
 
-#[cfg(feature = "listen")]
-use std::fmt::Display;
-use std::{collections::BTreeSet, sync::Mutex};
+use proc_macro::TokenStream;
+use std::collections::HashSet;
+use std::sync::Mutex;
 
-use convert_case::{Case, Casing};
-use proc_macro::{Span, TokenStream};
+use proc_macro_error::{emit_call_site_error, emit_call_site_warning, proc_macro_error};
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, Ident, ItemFn, ItemUse,
-    Lifetime, LifetimeParam, Pat, PathSegment, ReturnType, Signature, Type,
+    parse::Parser, parse_macro_input, punctuated::Punctuated, ExprPath, ItemFn, ItemMod, Token,
 };
 
-#[cfg(feature = "listen")]
-use syn::ItemStruct;
+use crate::command::collect::commands_to_punctuated;
 
-/// Conditionally adds [macro@listen_to] or [macro@emit] to a struct
-#[cfg(feature = "listen")]
-#[proc_macro_attribute]
-pub fn emit_or_listen(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
-    let stream = quote! {
-        #[cfg_attr(target_family = "wasm", tauri_interop::listen_to)]
-        #[cfg_attr(not(target_family = "wasm"), tauri_interop::emit)]
-        #stream_struct
-    };
+mod command;
+mod event;
 
-    TokenStream::from(stream.to_token_stream())
-}
-
-/// function to build the same unique event name for wasm and host triplet
-#[cfg(feature = "listen")]
-fn get_event_name<S, F>(struct_name: &S, field_name: &F) -> String
-where
-    S: Display,
-    F: Display,
-{
-    format!("{struct_name}::{field_name}")
-}
-
-/// Generates an `emit` function for the given struct with a
-/// correlation enum for emitting a single field of the struct.
+/// Conditionally adds [Listen] or [Emit] to a struct.
 ///
-/// Used for host code generation.
-#[cfg(feature = "listen")]
-#[proc_macro_attribute]
-pub fn emit(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
-
-    if stream_struct.fields.is_empty() {
-        panic!("No fields provided")
-    }
-
-    if stream_struct
-        .fields
-        .iter()
-        .any(|field| field.ident.is_none())
-    {
-        panic!("Tuple Structs aren't supported")
-    }
-
-    let name = format_ident!("{}Emit", stream_struct.ident);
-    let variants = stream_struct
-        .fields
-        .iter()
-        .map(|field| {
-            let field_ident = field.ident.as_ref().expect("handled before");
-            let variation = field_ident.to_string().to_case(Case::Pascal);
-
-            (field_ident, format_ident!("{variation}"), &field.ty)
-        })
-        .collect::<Vec<_>>();
-
-    let struct_ident = &stream_struct.ident;
-    let mut updaters = Vec::new();
-    let mapped_variants = variants
-        .iter()
-        .map(|(field_ident, variant_ident, ty)| {
-            let update = format_ident!("update_{}", field_ident);
-            updaters.push(quote!{
-                pub fn #update(&mut self, handle: &tauri::AppHandle, #field_ident: #ty) -> Result<(), tauri::Error> {
-                    self.#field_ident = #field_ident;
-                    self.emit(handle, #name::#variant_ident)
-                }
-            });
-
-            let event_name = get_event_name(struct_ident, field_ident);
-
-            quote! {
-                #name::#variant_ident => {
-                    log::trace!(
-                        "Emitted event [{}::{}]",
-                        stringify!(#struct_ident),
-                        stringify!(#variant_ident),
-                    );
-                    handle.emit_all(#event_name, self.#field_ident.clone())
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let variants = variants
-        .into_iter()
-        .map(|(_, variation, _)| variation)
-        .collect::<Vec<_>>();
-
-    let stream = quote! {
-        #[derive(Debug, Clone)]
-        pub enum #name {
-            #( #variants ),*
-        }
-
-        #stream_struct
-
-        impl #struct_ident {
-            #( #updaters )*
-
-            #[must_use]
-            pub fn emit(&self, handle: &::tauri::AppHandle, field: #name) -> Result<(), tauri::Error> {
-                use tauri::Manager;
-
-                match field {
-                    #( #mapped_variants ),*
-                }
-            }
-
-            pub fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), tauri::Error> {
-                #( self.emit(handle, #name::#variants)?; )*
-
-                Ok(())
-            }
-        }
-    };
-
-    TokenStream::from(stream.to_token_stream())
-}
-
-/// Generates `listen_to_<field>` functions for the given
-/// struct for the correlating host code.
+/// The field values inside the struct require to be self owned.
+/// That means references aren't allowed inside the event struct.
 ///
-/// Used for wasm code generation
-#[cfg(feature = "listen")]
-#[proc_macro_attribute]
-pub fn listen_to(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_struct = parse_macro_input!(stream as ItemStruct);
-
-    if stream_struct.fields.is_empty() {
-        panic!("No fields provided")
-    }
-
-    if stream_struct
-        .fields
-        .iter()
-        .any(|field| field.ident.is_none())
-    {
-        panic!("Tuple Structs aren't supported")
-    }
-
-    let struct_ident = &stream_struct.ident;
-
-    let mapped_variants = stream_struct
-        .fields
-        .iter()
-        .map(|field| {
-            let ty = &field.ty;
-            let field_ident = field
-                .ident
-                .as_ref()
-                .expect("handled before")
-                .clone();
-
-            let fn_ident = field_ident.to_string().to_case(Case::Snake).to_lowercase();
-            let event_name = get_event_name(struct_ident, &field_ident);
-
-            let leptos = cfg!(feature = "leptos").then(|| {
-                let use_fn_name = format_ident!("use_{fn_ident}");
-                quote! {
-                    #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                    pub fn #use_fn_name(initial_value: #ty) -> (::leptos::ReadSignal<#ty>, ::leptos::WriteSignal<#ty>) {
-                        ::tauri_interop::listen::ListenHandle::use_register(#event_name, initial_value)
-                    }
-                }
-            });
-
-            let listen_to_fn_name = format_ident!("listen_to_{fn_ident}");
-
-            quote! {
-                #leptos
-
-                #[must_use = "If the returned handle is dropped, the contained closure goes out of scope and can't be called"]
-                pub async fn #listen_to_fn_name<'s>(callback: impl Fn(#ty) + 'static) -> ::tauri_interop::listen::ListenResult<'s> {
-                    ::tauri_interop::listen::ListenHandle::register(#event_name, callback).await
-                }
-            }
-        }).collect::<Vec<_>>();
-
-    let stream = quote! {
-        #stream_struct
-
-        impl #struct_ident {
-            #( #mapped_variants )*
-        }
-    };
-
-    TokenStream::from(stream.to_token_stream())
-}
-
-lazy_static::lazy_static! {
-    static ref HANDLER_LIST: Mutex<BTreeSet<String>> = Mutex::new(Default::default());
-}
-
-const ARGUMENT_LIFETIME: &str = "'arg_lifetime";
-const TAURI_TYPES: [&str; 3] = ["State", "AppHandle", "Window"];
-
-/// really cheap filter for TAURI_TYPES
+/// Depending on the targeted architecture the macro generates different results.
+/// When compiling to `wasm` the [Listen] trait is derived. Otherwise, [Emit] is derived.
 ///
-/// didn't figure out a way to only include tauri:: Structs/Enums and
-/// for now all ident name like the above TAURI_TYPES are filtered
-fn is_tauri_type(segment: &PathSegment) -> bool {
-    TAURI_TYPES.contains(&segment.ident.to_string().as_str())
+/// Both traits generate a new mod in which the related field-structs are generated in.
+/// The mod can be automatically renamed with `#[auto_naming(EnumLike)]` to behave
+/// enum-like (for example a struct `Test`s mod would usually be named `test`, 'EnumLike'
+/// names it `TestField` instead) and `#[mod_name(...)]` is a direct possibility to rename
+/// the mod to any given name.
+///
+/// The generated field-structs represent a field of the struct and are used for the
+/// derived trait functions. The fields are used to `emit`, `update` or `listen_to` a
+/// given field. For detail usages see the individual traits defined in `tauri-interop`.
+///
+/// ### Example
+///
+/// ```
+/// use tauri_interop_macro::Event;
+///
+/// #[derive(Event)]
+/// struct EventModel {
+///     foo: String,
+///     pub bar: bool
+/// }
+/// 
+/// impl tauri_interop::event::ManagedEmit for EventModel {}
+///
+/// // has to be defined in this example, otherwise the
+/// // macro expansion panics because of missing super
+/// fn main() {}
+/// ```
+#[cfg(feature = "event")]
+#[proc_macro_derive(Event, attributes(auto_naming, mod_name))]
+pub fn derive_event(stream: TokenStream) -> TokenStream {
+    if cfg!(feature = "_wasm") {
+        event::listen::derive(stream)
+    } else {
+        event::emit::derive(stream)
+    }
 }
 
-/// simple filter for determining if the given path is a [Result]
-fn is_result(segment: &PathSegment) -> bool {
-    segment.ident.to_string().as_str() == "Result"
+/// Generates a default `Emit` implementation for the given struct.
+///
+/// Used for host code generation. It is not intended to be used directly.
+/// See [Event] for the usage.
+#[cfg(feature = "event")]
+#[proc_macro_derive(Emit, attributes(auto_naming, mod_name))]
+pub fn derive_emit(stream: TokenStream) -> TokenStream {
+    event::emit::derive(stream)
 }
 
-#[derive(PartialEq)]
-enum Invoke {
-    Empty,
-    AsyncEmpty,
-    Async,
-    AsyncResult,
+/// Generates a default `EmitField` implementation for the given struct.
+///
+/// Used for host code generation. It is not intended to be used directly.
+#[cfg(feature = "event")]
+#[proc_macro_derive(EmitField, attributes(parent, parent_field_name, parent_field_ty))]
+pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
+    event::emit::derive_field(stream)
+}
+
+/// Generates a default `Listen` implementation for the given struct.
+///
+/// Used for wasm code generation. It is not intended to be used directly.
+/// See [Event] for the usage.
+#[cfg(feature = "event")]
+#[proc_macro_derive(Listen, attributes(auto_naming, mod_name))]
+pub fn derive_listen(stream: TokenStream) -> TokenStream {
+    event::listen::derive(stream)
+}
+
+/// Generates a default `ListenField` implementation for the given struct.
+///
+/// Used for wasm code generation. It is not intended to be used directly.
+#[cfg(feature = "event")]
+#[proc_macro_derive(ListenField, attributes(parent, parent_field_ty))]
+pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
+    event::listen::derive_field(stream)
 }
 
 /// Generates the wasm counterpart to a defined `tauri::command`
 #[proc_macro_attribute]
-pub fn binding(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let ItemFn { attrs, sig, .. } = parse_macro_input!(stream as ItemFn);
-
-    let Signature {
-        ident,
-        mut generics,
-        inputs,
-        variadic,
-        output,
-        asyncness,
-        ..
-    } = sig;
-
-    let invoke_type = match &output {
-        ReturnType::Default => {
-            if asyncness.is_some() {
-                Invoke::AsyncEmpty
-            } else {
-                Invoke::Empty
-            }
-        }
-        ReturnType::Type(_, ty) => match ty.as_ref() {
-            // fixme: if it's an single ident, catch isn't needed this could probably be a problem later
-            Type::Path(path) if path.path.segments.iter().any(is_result) => Invoke::AsyncResult,
-            Type::Path(_) => Invoke::Async,
-            others => panic!("no support for '{}'", others.to_token_stream()),
-        },
-    };
-
-    let mut requires_lifetime_constrain = false;
-    let mut args_inputs: Punctuated<Ident, Comma> = Punctuated::new();
-    let wasm_inputs = inputs
-        .into_iter()
-        .filter_map(|mut fn_inputs| {
-            if let FnArg::Typed(ref mut typed) = fn_inputs {
-                match typed.ty.as_mut() {
-                    Type::Path(path) if path.path.segments.iter().any(is_tauri_type) => {
-                        return None
-                    }
-                    Type::Reference(reference) => {
-                        reference.lifetime =
-                            Some(Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into()));
-                        requires_lifetime_constrain = true;
-                    }
-                    _ => {}
-                }
-
-                if let Pat::Ident(ident) = typed.pat.as_ref() {
-                    args_inputs.push(ident.ident.clone());
-                    return Some(fn_inputs);
-                }
-            }
-            None
-        })
-        .collect::<Punctuated<FnArg, Comma>>();
-
-    if requires_lifetime_constrain {
-        let lt = Lifetime::new(ARGUMENT_LIFETIME, Span::call_site().into());
-        generics
-            .params
-            .push(syn::GenericParam::Lifetime(LifetimeParam::new(lt)))
-    }
-
-    let async_ident = (invoke_type.ne(&Invoke::Empty)).then_some(format_ident!("async"));
-    let invoke = match invoke_type {
-        Invoke::Empty => quote!(::tauri_interop::bindings::invoke(stringify!(#ident), args);),
-        Invoke::Async | Invoke::AsyncEmpty => {
-            quote!(::tauri_interop::command::async_invoke(stringify!(#ident), args).await)
-        }
-        Invoke::AsyncResult => {
-            quote!(::tauri_interop::command::invoke_catch(stringify!(#ident), args).await)
-        }
-    };
-
-    let args_ident = format_ident!("{}Args", ident.to_string().to_case(Case::Pascal));
-    let stream = quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize)]
-        struct #args_ident #generics {
-            #wasm_inputs
-        }
-
-        #( #attrs )*
-        pub #async_ident fn #ident #generics (#wasm_inputs) #variadic #output
-        {
-            let args = #args_ident { #args_inputs };
-            let args = ::serde_wasm_bindgen::to_value(&args)
-                .expect("serialized arguments");
-
-            #invoke
-        }
-    };
-
-    TokenStream::from(stream.to_token_stream())
+pub fn binding(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
+    command::convert_to_binding(stream)
 }
 
-/// Conditionally adds [macro@binding] or `tauri::command` to a struct
-#[proc_macro_attribute]
-pub fn command(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let fn_item = syn::parse::<ItemFn>(stream).unwrap();
+lazy_static::lazy_static! {
+    static ref COMMAND_LIST_ALL: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+}
 
-    HANDLER_LIST
+lazy_static::lazy_static! {
+    static ref COMMAND_LIST: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+}
+
+static COMMAND_MOD_NAME: Mutex<Option<String>> = Mutex::new(None);
+
+/// Conditionally adds the macro [macro@binding] or `tauri::command` to a struct
+///
+/// By using this macro, when compiling to wasm, a version that invokes the
+/// current function is generated.
+///
+/// ### Collecting commands
+/// When this macro is compiled to the host target, additionally to adding the
+/// `tauri::command` macro, the option to auto collect the command via
+/// [macro@collect_commands] and [macro@combine_handlers] is provided.
+///
+/// ### Binding generation
+/// All parameter arguments with `tauri` in their name (case-insensitive) are
+/// removed as argument in a defined command. That includes `tauri::*` usages
+/// and `Tauri` named types.
+///
+/// The type returned is evaluated automatically and is most of the time 1:1
+/// to the defined type. When using a wrapped `Result<T, E>` type, it should
+/// include the phrase "Result" in the type name. Otherwise, the returned type
+/// can't be successfully interpreted as a result and by that will result in
+/// wrong type/error handling/serialization.
+///
+/// ### Example - Definition
+///
+/// ```rust
+/// #[tauri_interop_macro::command]
+/// fn trigger_something(name: &str) {
+///     print!("triggers something, but doesn't need to wait for it")
+/// }
+///
+/// #[tauri_interop_macro::command]
+/// fn wait_for_sync_execution(value: &str) -> String {
+///     format!("Has to wait that the backend completes the computation and returns the {value}")
+/// }
+///
+/// #[tauri_interop_macro::command]
+/// async fn asynchronous_execution(change: bool) -> Result<String, String> {
+///     if change {
+///         Ok("asynchronous execution returning result, need Result in their type name".into())
+///     } else {
+///         Err("if they don't it, the error will be not be parsed/handled".into())
+///     }
+/// }
+///
+/// #[tauri_interop_macro::command]
+/// async fn heavy_computation() {
+///   std::thread::sleep(std::time::Duration::from_millis(5000))
+/// }
+/// ```
+///
+/// ### Example - Usage
+///
+/// ```rust , ignore
+/// fn main() {
+///     trigger_something();
+///
+///     wasm_bindgen_futures::spawn_local(async move {
+///         wait_for_sync_execution("value").await;
+///         asynchronous_execution(true).await.expect("returns ok");
+///         heavy_computation().await;
+///     });
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
+    let fn_item = parse_macro_input!(stream as ItemFn);
+
+    COMMAND_LIST
         .lock()
         .unwrap()
         .insert(fn_item.sig.ident.to_string());
 
     let command_macro = quote! {
-        #[cfg_attr(target_family = "wasm", tauri_interop::binding)]
-        #[cfg_attr(not(target_family = "wasm"), tauri::command(rename_all = "snake_case"))]
+        #[cfg_attr(target_family = "wasm", ::tauri_interop::binding)]
+        #[cfg_attr(not(target_family = "wasm"), ::tauri::command(rename_all = "snake_case"))]
         #fn_item
     };
 
     TokenStream::from(command_macro.to_token_stream())
 }
 
-/// Collects all commands annotated with [macro@command] and
-/// provides these with a `get_handlers()` in the current namespace
+/// Marks a mod that contains commands
+///
+/// A mod needs to be marked when multiple command mods should be combined.
+/// See [combine_handlers!] for a detailed explanation/example.
+///
+/// Requires usage of unstable feature: `#![feature(proc_macro_hygiene)]`
+#[proc_macro_attribute]
+pub fn commands(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
+    let item_mod = parse_macro_input!(stream as ItemMod);
+    let _ = COMMAND_MOD_NAME
+        .lock()
+        .unwrap()
+        .insert(item_mod.ident.to_string());
+
+    TokenStream::from(item_mod.to_token_stream())
+}
+
+/// Collects all commands annotated with `tauri_interop::command` and
+/// provides these with a `get_handlers()` in the current mod
+///
+/// The provided function isn't available in wasm
+///
+/// ### Example
+///
+/// ```
+/// #[tauri_interop_macro::command]
+/// fn greet(name: &str) -> String {
+///     format!("Hello, {}! You've been greeted from Rust!", name)
+/// }
+///
+/// tauri_interop_macro::collect_commands!();
+///
+/// fn main() {
+///     let _ = tauri::Builder::default()
+///     // This is where you pass in the generated handler collector
+///     // in this example this would only register cmd1
+///         .invoke_handler(get_handlers());
+/// }
+/// ```
 #[proc_macro]
 pub fn collect_commands(_: TokenStream) -> TokenStream {
-    let handler = HANDLER_LIST.lock().unwrap();
-    let to_generated_handler = handler
-        .iter()
-        .map(|s| format_ident!("{s}"))
-        .collect::<Punctuated<Ident, Comma>>();
+    let mut commands = COMMAND_LIST.lock().unwrap();
+    let stream = command::collect::get_handler_function(
+        format_ident!("get_handlers"),
+        &commands,
+        commands_to_punctuated(&commands),
+        Vec::new(),
+    );
 
-    let stream = quote! {
-        #[cfg(not(target_family = "wasm"))]
-        /// the all mighty handler collector
-        pub fn get_handlers() -> impl Fn(tauri::Invoke) {
-            let handlers = vec! [ #( #handler ),* ];
-            log::debug!("Registering following commands to tauri: {handlers:#?}");
+    // logic for renaming the commands, so that combine methode can just use the provided commands
+    if let Some(mod_name) = COMMAND_MOD_NAME.lock().unwrap().as_ref() {
+        COMMAND_LIST_ALL
+            .lock()
+            .unwrap()
+            .extend(command::collect::commands_with_mod_name(
+                mod_name, &commands,
+            ));
+    } else {
+        // if there is no mod provided we can just move/clear the commands
+        COMMAND_LIST_ALL
+            .lock()
+            .unwrap()
+            .extend(commands.iter().cloned());
+    }
 
-            ::tauri::generate_handler![ #to_generated_handler ]
-        }
-    };
+    // clearing the already used handlers
+    commands.clear();
+    // set mod name to none
+    let _ = COMMAND_MOD_NAME.lock().unwrap().take();
 
     TokenStream::from(stream.to_token_stream())
 }
 
-/// Simple macro to include given `use` only in host
-#[proc_macro_attribute]
-pub fn host_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let item_use = parse_macro_input!(stream as ItemUse);
+/// Combines multiple modules containing commands
+///
+/// Takes multiple module paths as input and provides a `get_all_handlers()` function in
+/// the current mod that registers all commands from the provided mods. This macro does
+/// still require the invocation of [collect_commands!] at the end of a command mod. In
+/// addition, a mod has to be marked with [macro@commands].
+///
+/// ### Example
+///
+/// ```
+/// #[tauri_interop_macro::commands]
+/// mod cmd1 {
+///     #[tauri_interop_macro::command]
+///     pub fn cmd1() {}
+///
+///     tauri_interop_macro::collect_commands!();
+/// }
+///
+/// mod whatever {
+///     #[tauri_interop_macro::commands]
+///     pub mod cmd2 {
+///         #[tauri_interop_macro::command]
+///         pub fn cmd2() {}
+///
+///         tauri_interop_macro::collect_commands!();
+///     }
+/// }
+///
+/// tauri_interop_macro::combine_handlers!( cmd1, whatever::cmd2 );
+///
+/// fn main() {
+///     let _ = tauri::Builder::default()
+///     // This is where you pass in the combined handler collector
+///     // in this example it will register cmd1::cmd1 and whatever::cmd2::cmd2
+///         .invoke_handler(get_all_handlers());
+/// }
+/// ```
+#[proc_macro_error]
+#[proc_macro]
+pub fn combine_handlers(stream: TokenStream) -> TokenStream {
+    if cfg!(feature = "_wasm") {
+        return Default::default()
+    }
+    
+    let command_mods = Punctuated::<ExprPath, Token![,]>::parse_terminated
+        .parse2(stream.into())
+        .unwrap()
+        .into_iter()
+        .collect::<Vec<_>>();
 
-    let command_macro = quote! {
-        #[cfg(not(target_family = "wasm"))]
-        #item_use
-    };
+    let org_commands = COMMAND_LIST_ALL.lock().unwrap();
+    let commands = command::collect::get_filtered_commands(&org_commands, &command_mods);
 
-    TokenStream::from(command_macro.to_token_stream())
+    if commands.is_empty() {
+        emit_call_site_error!("No commands will be registered")
+    }
+
+    let remaining_commands = COMMAND_LIST.lock().unwrap();
+    if !remaining_commands.is_empty() {
+        emit_call_site_error!(
+            "Their are dangling commands that won't be registered. See {:?}",
+            remaining_commands
+        )
+    }
+
+    if org_commands.len() > commands.len() {
+        let diff = org_commands
+            .difference(&commands)
+            .cloned()
+            .intersperse(String::from(","))
+            .collect::<String>();
+        emit_call_site_warning!(
+            "Not all commands will be registered. Missing commands: {:?}",
+            diff
+        );
+    }
+
+    TokenStream::from(command::collect::get_handler_function(
+        format_ident!("get_all_handlers"),
+        &commands,
+        commands_to_punctuated(&commands),
+        command_mods,
+    ))
 }
 
-/// Simple macro to include given `use` only in wasm
-#[proc_macro_attribute]
-pub fn wasm_usage(_: TokenStream, stream: TokenStream) -> TokenStream {
-    let item_use = parse_macro_input!(stream as ItemUse);
+/// Simple macro to include multiple imports (seperated by `|`) not in wasm
+///
+/// ### Example
+///
+/// ```rust
+/// tauri_interop_macro::host_usage! {
+///     use tauri::State;
+///     | use std::sync::RwLock;
+/// }
+///
+/// #[tauri_interop_macro::command]
+/// pub fn empty_invoke(_state: State<RwLock<String>>) {}
+/// ```
+#[proc_macro]
+pub fn host_usage(stream: TokenStream) -> TokenStream {
+    let uses = command::collect::uses(stream);
+    TokenStream::from(quote! {
+        #(
+            #[cfg(not(target_family = "wasm"))]
+            #uses
+        )*
+    })
+}
 
-    let command_macro = quote! {
-        #[cfg(target_family = "wasm")]
-        #item_use
-    };
-
-    TokenStream::from(command_macro.to_token_stream())
+/// Simple macro to include multiple imports (seperated by `|`) only in wasm
+///
+/// Equivalent to [host_usage!] for wasm imports only required in wasm.
+/// For an example see [host_usage!].
+#[proc_macro]
+pub fn wasm_usage(stream: TokenStream) -> TokenStream {
+    let uses = command::collect::uses(stream);
+    TokenStream::from(quote! {
+        #(
+            #[cfg(target_family = "wasm")]
+            #uses
+        )*
+    })
 }

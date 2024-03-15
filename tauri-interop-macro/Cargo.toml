@@ -13,12 +13,25 @@ description = "Macros for the tauri-interop crate."
 proc-macro = true
 
 [dependencies]
-syn = { version = "2.0", features = [ "full" ]}
-quote = "1.0"
-convert_case = "0.6.0"
-lazy_static = "1.4.0"
+syn = { version = "^2.0", features = [ "full", "extra-traits" ]}
+quote = "^1.0"
+convert_case = "^0.6"
+lazy_static = "^1.4"
+proc-macro2 = "^1.0"
+proc-macro-error = "1.0.4"
+
+[dev-dependencies]
+tauri = { version = "^1.5", default-features = false, features = ["wry"] }
+log = "^0.4"
+serde = "^1.0"
+# required because the intented usage is to use the main crate,
+# for testing we need the reexported macros from tauri-interop
+tauri-interop = { path = "..", features = ["initial_value"] }
 
 [features]
-default = [ "listen" ]
-listen = []
-leptos = []
+default = []
+event   = []
+leptos  = []
+initial_value = []
+# feature to get info that context is wasm
+_wasm   = []

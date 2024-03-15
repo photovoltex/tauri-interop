@@ -1,25 +1,27 @@
 #![allow(clippy::disallowed_names)]
 
-use api::model::TestState;
+use api::event::Listen;
+use api::model::{test_mod, TestState};
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]
-use leptos::{component, create_signal, view, IntoView};
+use leptos::{component, view, IntoView};
 
 fn main() {
     console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
     console_error_panic_hook::set_once();
 
     api::cmd::empty_invoke();
+    api::cmd::underscore_invoke(69);
 
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);
-        
+
         api::cmd::await_heavy_computing().await;
         log::info!("heavy computing finished")
     });
 
     wasm_bindgen_futures::spawn_local(async move {
-        let handle_bar = TestState::listen_to_bar(|echo| log::info!("bar: {echo}"))
+        let handle_bar = TestState::listen_to::<test_mod::Bar>(|echo| log::info!("bar: {echo}"))
             .await
             .unwrap();
 
@@ -41,23 +43,18 @@ fn main() {
 #[cfg(feature = "leptos")]
 #[component]
 fn App() -> impl IntoView {
-    use leptos::{SignalGet, SignalSet};
+    use leptos::SignalGet;
 
-    let (bar, set_bar) = create_signal(false);
+    let bar = TestState::use_field::<test_mod::Bar>(Some(true));
 
-    leptos::spawn_local(async move {
-        let handle_bar = TestState::listen_to_bar(move |bar| set_bar.set(bar))
-            .await
-            .unwrap();
-
-        Timeout::new(5000, move || drop(handle_bar)).forget();
-    });
+    let exit = move |_| api::model::other_cmd::stop_application();
 
     view! {
         <div>
+            <button on:click=exit>Exit</button>
             <Foo/>
             {move || if bar.get() {
-                "No Foo".into_view()
+                Foo.into_view()
             } else {
                 Foo.into_view()
             }}
@@ -68,9 +65,13 @@ fn App() -> impl IntoView {
 #[cfg(feature = "leptos")]
 #[component]
 fn Foo() -> impl IntoView {
-    Timeout::new(2000, api::cmd::emit).forget();
+    log::info!("create foo");
+    Timeout::new(3000, || {
+        log::info!("emit foo");
+        api::cmd::emit();
+    }).forget();
 
-    let (foo, _set_foo) = TestState::use_foo("Test".into());
+    let foo = TestState::use_field::<test_mod::Foo>(None);
 
     view! { <h1>{foo}</h1> }
 }

@@ -1,9 +1,9 @@
 [workspace]
-members = [ "tauri-interop-macro" ]
+members = ["tauri-interop-macro"]
 package.edition = "2021"
-package.version = "1.3.0"
-package.keywords = [ "wasm", "tauri", "command", "event", "leptos" ]
-package.authors = [ "photovoltex" ]
+package.version = "2.0.0"
+package.keywords = ["wasm", "tauri", "command", "event", "leptos"]
+package.authors = ["photovoltex"]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
 package.license = "MIT OR Apache-2.0"
 
@@ -20,26 +20,33 @@ description = "Easily connect your rust frontend and backend without writing dup
 readme = "README.md"
 
 [dependencies]
-# tauri-interop-macro = { path = "./tauri-interop-macro" }
-tauri-interop-macro = "1.3.0"
+#tauri-interop-macro = { path = "./tauri-interop-macro" }
+tauri-interop-macro = "2.0.0"
 
-js-sys = "0.3.65"
-serde = { version = "1.0.193", features = ["derive"] }
-wasm-bindgen = "0.2.88"
-wasm-bindgen-futures = "0.4.38"
-thiserror = "1.0.50"
-serde-wasm-bindgen = "0.6.1"
-log = "0.4.20"
+js-sys = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+thiserror = "1.0"
+serde-wasm-bindgen = "0.6"
+log = "0.4"
 
 # leptos feature
-leptos = { version = "0.5.2", optional = true }
+leptos = { version = "0.5", optional = true }
 
-[dev-dependencies]
-# comment when target is set to wasm in .cargo/config.toml
-tauri = "1.5.2"
+# only include if not wasm
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tauri = { version = "1.5", default-features = false, features = ["wry"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+#tauri-interop-macro = { path = "./tauri-interop-macro", features = ["_wasm"] }
+tauri-interop-macro = { version = "2.0.0", features = [ "_wasm" ] }
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
+tauri = "1.5"
 
 [features]
-default = [ "listen" ]
-wasm    = []
-listen  = [ "tauri-interop-macro/listen" ]
-leptos  = [ "dep:leptos", "tauri-interop-macro/leptos" ]
+default = []
+event = ["tauri-interop-macro/event"]
+initial_value = ["tauri-interop-macro/initial_value"]
+leptos = ["dep:leptos", "tauri-interop-macro/leptos"]
