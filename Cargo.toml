@@ -1,7 +1,7 @@
 [workspace]
 members = ["tauri-interop-macro"]
 package.edition = "2021"
-package.version = "2.1.0"
+package.version = "2.1.1"
 package.keywords = ["wasm", "tauri", "command", "event", "leptos"]
 package.authors = ["photovoltex"]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
@@ -25,7 +25,7 @@ readme = "README.md"
 
 [dependencies]
 #tauri-interop-macro = { path = "./tauri-interop-macro" }
-tauri-interop-macro = "2.1.0"
+tauri-interop-macro = "2.1.1"
 
 js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }
@@ -44,7 +44,7 @@ tauri = { version = "1.6", default-features = false, features = ["wry"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 #tauri-interop-macro = { path = "./tauri-interop-macro", features = ["_wasm"] }
-tauri-interop-macro = { version = "2.1.0", features = [ "_wasm" ] }
+tauri-interop-macro = { version = "2.1.1", features = [ "_wasm" ] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tauri = "1.6"
