@@ -100,7 +100,8 @@ impl ListenHandle {
     /// 
     /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
     /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
-    #[cfg(feature = "leptos")]
+    #[cfg(any(feature = "leptos", doc))]
+    #[doc(cfg(feature = "leptos"))]
     pub fn use_register<P, F: Field<P>>(initial_value: Option<F::Type>) -> ReadSignal<F::Type>
         where P: Sized + super::Parent
     {
@@ -189,7 +190,8 @@ pub trait Listen {
     ///   let foo: leptos::ReadSignal<String> = Test::use_field::<test::Foo>(String::default());
     /// }
     /// ```
-    #[cfg(feature = "leptos")]
+    #[cfg(any(feature = "leptos", doc))]
+    #[doc(cfg(feature = "leptos"))]
     fn use_field<F: Field<Self>>(initial: Option<F::Type>) -> ReadSignal<F::Type>
     where
         Self: Sized + super::Parent,

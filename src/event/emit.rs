@@ -19,7 +19,8 @@ pub trait Parent = Emit;
 pub trait Parent = ManagedEmit;
 
 /// Extension of [Emit] to additionally require [Self] to be managed by tauri
-#[cfg(feature = "initial_value")]
+#[cfg(any(feature = "initial_value", doc))]
+#[doc(cfg(feature = "initial_value"))]
 pub trait ManagedEmit: Emit
 where
     Self: 'static,

@@ -14,13 +14,24 @@
 //! Detail explanations and example can be found on the respected traits or macros. Some
 //! examples are ignored because they are only valid when compiling to wasm.
 
-#![warn(missing_docs)]
 #![feature(trait_alias)]
+#![feature(doc_cfg)]
+#![warn(missing_docs)]
 
+#[cfg(any(target_family = "wasm", doc))]
+#[doc(cfg(target_family = "wasm"))]
+pub use tauri_interop_macro::binding;
 pub use tauri_interop_macro::*;
+#[cfg(not(target_family = "wasm"))]
+#[doc(cfg(not(target_family = "wasm")))]
+pub use tauri_interop_macro::{collect_commands, combine_handlers, commands};
+#[cfg(any(feature = "event", doc))]
+#[doc(cfg(feature = "event"))]
+pub use tauri_interop_macro::{Emit, EmitField, Event, Listen, ListenField};
 
 /// wrapped bindings for easier use in the generated wasm commands
 pub mod command;
-/// event traits and overall logic for event emitting and listening (feat: `event`)
-#[cfg(feature = "event")]
+/// event traits and overall logic for event emitting and listening
+#[cfg(any(feature = "event", doc))]
+#[doc(cfg(feature = "event"))]
 pub mod event;
