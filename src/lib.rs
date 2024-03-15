@@ -25,13 +25,13 @@ pub use tauri_interop_macro::*;
 #[cfg(not(target_family = "wasm"))]
 #[doc(cfg(not(target_family = "wasm")))]
 pub use tauri_interop_macro::{collect_commands, combine_handlers, commands};
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 pub use tauri_interop_macro::{Emit, EmitField, Event, Listen, ListenField};
 
 /// wrapped bindings for easier use in the generated wasm commands
 pub mod command;
 /// event traits and overall logic for event emitting and listening
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 pub mod event;

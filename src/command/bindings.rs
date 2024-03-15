@@ -24,7 +24,7 @@ extern "C" {
     /// The binding for the frontend that listens to events
     ///
     /// [Events](https://tauri.app/v1/guides/features/events)
-    #[cfg(any(feature = "event", doc))]
+    #[cfg(feature = "event")]
     #[doc(cfg(feature = "event"))]
     #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "event"])]
     pub async fn listen(

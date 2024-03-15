@@ -55,7 +55,7 @@ mod event;
 /// // macro expansion panics because of missing super
 /// fn main() {}
 /// ```
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 #[proc_macro_derive(Event, attributes(auto_naming, mod_name))]
 pub fn derive_event(stream: TokenStream) -> TokenStream {
@@ -70,7 +70,7 @@ pub fn derive_event(stream: TokenStream) -> TokenStream {
 ///
 /// Used for host code generation. It is not intended to be used directly.
 /// See [Event] for the usage.
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 #[proc_macro_derive(Emit, attributes(auto_naming, mod_name))]
 pub fn derive_emit(stream: TokenStream) -> TokenStream {
@@ -80,7 +80,7 @@ pub fn derive_emit(stream: TokenStream) -> TokenStream {
 /// Generates a default `EmitField` implementation for the given struct.
 ///
 /// Used for host code generation. It is not intended to be used directly.
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 #[proc_macro_derive(EmitField, attributes(parent, parent_field_name, parent_field_ty))]
 pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
@@ -91,7 +91,7 @@ pub fn derive_emit_field(stream: TokenStream) -> TokenStream {
 ///
 /// Used for wasm code generation. It is not intended to be used directly.
 /// See [Event] for the usage.
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 #[proc_macro_derive(Listen, attributes(auto_naming, mod_name))]
 pub fn derive_listen(stream: TokenStream) -> TokenStream {
@@ -101,7 +101,7 @@ pub fn derive_listen(stream: TokenStream) -> TokenStream {
 /// Generates a default `ListenField` implementation for the given struct.
 ///
 /// Used for wasm code generation. It is not intended to be used directly.
-#[cfg(any(feature = "event", doc))]
+#[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 #[proc_macro_derive(ListenField, attributes(parent, parent_field_ty))]
 pub fn derive_listen_field(stream: TokenStream) -> TokenStream {
