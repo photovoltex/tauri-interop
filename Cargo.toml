@@ -1,7 +1,7 @@
 [workspace]
 members = ["tauri-interop-macro"]
 package.edition = "2021"
-package.version = "2.0.0"
+package.version = "2.0.1"
 package.keywords = ["wasm", "tauri", "command", "event", "leptos"]
 package.authors = ["photovoltex"]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
@@ -21,7 +21,7 @@ readme = "README.md"
 
 [dependencies]
 #tauri-interop-macro = { path = "./tauri-interop-macro" }
-tauri-interop-macro = "2.0.0"
+tauri-interop-macro = "2.0.1"
 
 js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }
