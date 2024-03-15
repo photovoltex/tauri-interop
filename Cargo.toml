@@ -40,14 +40,14 @@ leptos = { version = "0.6", optional = true }
 
 # only include if not wasm
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tauri = { version = "1.5", default-features = false, features = ["wry"] }
+tauri = { version = "1.6", default-features = false, features = ["wry"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 #tauri-interop-macro = { path = "./tauri-interop-macro", features = ["_wasm"] }
 tauri-interop-macro = { version = "2.1.0", features = [ "_wasm" ] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-tauri = "1.5"
+tauri = "1.6"
 
 [features]
 default = []

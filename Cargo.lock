@@ -3327,24 +3327,10 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "tauri",
- "tauri-interop-macro 2.0.2",
+ "tauri-interop-macro 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "tauri-interop-macro"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dbfaea1629f9987e8817846addaffef3b24ab5e132e584f371625e9d49b4191"
-dependencies = [
- "convert_case 0.6.0",
- "lazy_static",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 2.0.52",
 ]
 
 [[package]]
@@ -3361,6 +3347,20 @@ dependencies = [
  "syn 2.0.52",
  "tauri",
  "tauri-interop",
+]
+
+[[package]]
+name = "tauri-interop-macro"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6107bb6b43eaa7663d5b5e6aa4558f81fad2589f21c9a069802432b0a0a6e4e"
+dependencies = [
+ "convert_case 0.6.0",
+ "lazy_static",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
 ]
 
 [[package]]
