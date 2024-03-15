@@ -11,14 +11,14 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
 # host target
-tauri = { version = "1.5", optional = true }
+tauri = { version = "1.6", optional = true }
 
 # wasm target
 js-sys = { version = "0.3", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
 wasm-bindgen-futures = {version = "0.4", optional = true}
-leptos = { version = "0.5", features = ["csr"], optional = true }
+leptos = { version = "0.6", features = ["csr"], optional = true }
 
 [features]
 default = [ "host" ]
