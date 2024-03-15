@@ -9,6 +9,10 @@ license.workspace = true
 name = "tauri-interop-macro"
 description = "Macros for the tauri-interop crate."
 
+[package.metadata.docs.rs]
+# see https://docs.rs/about/metadata for more options
+all-features = true
+
 [lib]
 proc-macro = true
 

@@ -7,6 +7,10 @@ package.authors = ["photovoltex"]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
 package.license = "MIT OR Apache-2.0"
 
+[package.metadata.docs.rs]
+# see https://docs.rs/about/metadata for more options
+all-features = true
+
 [package]
 edition.workspace = true
 version.workspace = true
@@ -40,7 +44,7 @@ tauri = { version = "1.5", default-features = false, features = ["wry"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 #tauri-interop-macro = { path = "./tauri-interop-macro", features = ["_wasm"] }
-tauri-interop-macro = { version = "2.0.0", features = [ "_wasm" ] }
+tauri-interop-macro = { version = "2.0.1", features = [ "_wasm" ] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tauri = "1.5"
