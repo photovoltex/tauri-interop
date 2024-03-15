@@ -3479,7 +3479,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop"
-version = "2.0.0-dev"
+version = "2.0.0"
 dependencies = [
  "js-sys",
  "leptos",
@@ -3495,7 +3495,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop-macro"
-version = "2.0.0-dev"
+version = "2.0.0"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",

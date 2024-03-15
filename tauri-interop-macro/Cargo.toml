@@ -29,8 +29,7 @@ serde = "^1.0"
 tauri-interop = { path = "..", features = ["initial_value"] }
 
 [features]
-# todo: remove default feature before publish
-default = [ "event" ]
+default = []
 event   = []
 leptos  = []
 initial_value = []
