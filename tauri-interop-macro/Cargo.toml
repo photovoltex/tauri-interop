@@ -26,12 +26,13 @@ log = "^0.4"
 serde = "^1.0"
 # required because the intented usage is to use the main crate,
 # for testing we need the reexported macros from tauri-interop
-tauri-interop = { path = ".." }
+tauri-interop = { path = "..", features = ["initial_value"] }
 
 [features]
 # todo: remove default feature before publish
 default = [ "event" ]
-leptos  = [ "event" ]
 event   = []
+leptos  = []
+initial_value = []
 # feature to get info that context is wasm
 _wasm   = []

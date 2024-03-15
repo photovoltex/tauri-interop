@@ -31,13 +31,21 @@ pub fn derive(stream: TokenStream) -> TokenStream {
     });
 
     let event_fields = fields.iter().map(|field| &field.field_name);
+    let commands_attr = cfg!(feature = "initial_value")
+        .then_some(quote!(#[::tauri_interop::commands]))
+        .unwrap_or_default();
+    let collect_command = cfg!(feature = "initial_value")
+        .then_some(quote!(::tauri_interop::collect_commands!();))
+        .unwrap_or_default();
 
     let stream = quote! {
+        #commands_attr
         pub mod #mod_name {
             use super::#name;
-            use tauri_interop::event::{Field, Emit};
 
             #( #emit_fields )*
+
+            #collect_command
         }
 
         impl ::tauri_interop::event::Emit for #name {
@@ -78,6 +86,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
         name,
         attributes,
         event_name,
+        get_cmd,
     } = super::prepare_field(derive_input);
 
     let FieldAttributes {
@@ -90,8 +99,20 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
         .as_ref()
         .expect("name attribute was expected");
 
+    let get_cmd = cfg!(feature = "initial_value").then_some(quote! {
+            #[allow(non_snake_case)]
+            #[tauri_interop::command]
+            pub fn #get_cmd(handle: ::tauri::AppHandle) -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {
+                use ::tauri::Manager;
+                use ::tauri_interop::event::{Field, ManagedEmit, EventError};
+            
+                #parent::get_value::<#name>(&handle, |parent| parent.#parent_field_name.clone())
+                    .ok_or(EventError::StateIsNotRegistered(stringify!(#parent).into()))
+            }
+        }).unwrap_or_default();
+
     let stream = quote! {
-        impl Field<#parent> for #name {
+        impl ::tauri_interop::event::Field<#parent> for #name {
             type Type = #parent_field_ty;
 
             const EVENT_NAME: &'static str = #event_name;
@@ -109,6 +130,8 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
                 Self::emit(parent, handle)
             }
         }
+
+        #get_cmd
     };
 
     TokenStream::from(stream.to_token_stream())

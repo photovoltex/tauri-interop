@@ -29,10 +29,10 @@ jobs:
     - name: Run tests for crate
       run: |
         cd tauri-interop-macro
-        cargo test
+        cargo test --features event,leptos,initial_value
 
     - name: Run tests for crate
-      run: cargo test
+      run: cargo test --all-features
 
     - name: Build test-project (wasm)
       run: |
