@@ -41,7 +41,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         #commands_attr
         pub mod #mod_name {
-            use super::#name;
+            use super::*;
 
             #( #emit_fields )*
 
