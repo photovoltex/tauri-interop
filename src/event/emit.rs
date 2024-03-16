@@ -36,7 +36,7 @@ where
         get_field_value: impl Fn(&Self) -> F::Type,
     ) -> Option<F::Type>
     where
-        Self: Sized + Send + Sync,
+        Self: Send + Sync,
     {
         use tauri::Manager;
 
@@ -47,7 +47,7 @@ where
 }
 
 /// Trait that defines the available event emitting methods
-pub trait Emit {
+pub trait Emit: Sized {
     /// Emit all field events
     ///
     /// ### Example
@@ -96,7 +96,7 @@ pub trait Emit {
     /// ```
     fn emit<F: Field<Self>>(&self, handle: &AppHandle<Wry>) -> Result<(), Error>
     where
-        Self: Sized + Parent;
+        Self: Parent;
 
     /// Update a single field and emit it afterward
     ///
@@ -127,5 +127,5 @@ pub trait Emit {
         field: F::Type,
     ) -> Result<(), Error>
     where
-        Self: Sized + Parent;
+        Self: Parent;
 }

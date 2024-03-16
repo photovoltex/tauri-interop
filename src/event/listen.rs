@@ -7,7 +7,7 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use crate::command::bindings::listen;
 
 #[cfg(doc)]
-use super::Emit;
+use super::{Emit, Parent};
 use super::Field;
 
 /// The trait which needs to be implemented for a [Field]
@@ -95,15 +95,16 @@ impl ListenHandle {
 
     /// Registers a given event and binds a returned signal to these event changes
     ///
-    /// Providing [None] will unwrap into the default value. When feature `initial_value` 
+    /// Providing [None] will unwrap into the default value. When feature `initial_value`
     /// is enabled [None] will try to get the value from tauri.
-    /// 
+    ///
     /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
     /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
     #[doc(cfg(feature = "leptos"))]
     pub fn use_register<P, F: Field<P>>(initial_value: Option<F::Type>) -> ReadSignal<F::Type>
-        where P: Sized + super::Parent
+    where
+        P: Parent,
     {
         use leptos::SignalSet;
 
@@ -116,10 +117,10 @@ impl ListenHandle {
             if cfg!(feature = "initial_value") && acquire_initial_value {
                 match F::get_value().await {
                     Ok(value) => set_signal.set(value),
-                    Err(why) => log::error!("{why}")
+                    Err(why) => log::error!("{why}"),
                 }
             }
-            
+
             let listen_handle = ListenHandle::register(F::EVENT_NAME, move |value: F::Type| {
                 log::trace!("update for {}", F::EVENT_NAME);
                 set_signal.set(value)
@@ -136,7 +137,7 @@ impl ListenHandle {
 }
 
 /// Trait that defines the available listen methods
-pub trait Listen {
+pub trait Listen: Sized {
     /// Registers a callback to a [Field]
     ///
     /// Default Implementation: see [ListenHandle::register]
@@ -164,7 +165,7 @@ pub trait Listen {
         callback: impl Fn(F::Type) + 'static,
     ) -> impl std::future::Future<Output = ListenResult>
     where
-        Self: Sized + super::Parent,
+        Self: Parent,
     {
         ListenHandle::register(F::EVENT_NAME, callback)
     }
@@ -194,7 +195,7 @@ pub trait Listen {
     #[doc(cfg(feature = "leptos"))]
     fn use_field<F: Field<Self>>(initial: Option<F::Type>) -> ReadSignal<F::Type>
     where
-        Self: Sized + super::Parent,
+        Self: Parent,
     {
         ListenHandle::use_register::<Self, F>(initial)
     }
