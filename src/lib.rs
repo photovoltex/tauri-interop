@@ -13,6 +13,14 @@
 //!
 //! Detail explanations and example can be found on the respected traits or macros. Some
 //! examples are ignored because they are only valid when compiling to wasm.
+//!
+//! ### Note
+//!
+//! The library uses resolver 2 features to allow easy inclusion without configuration. When working
+//! with virtual workspaces the resolver defaults to 1 in which case it is required to set the
+//! resolver manually to version 2, otherwise the [target specific compilation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies)
+//! will not resolve correctly. When the wrong resolver is used, an error should state that the
+//! [event::Listen] trait is missing.
 
 #![feature(trait_alias)]
 #![feature(doc_cfg)]
