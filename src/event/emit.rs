@@ -89,7 +89,7 @@ pub trait Emit: Sized {
     /// 
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {
-    ///     Test::default().emit::<test::Foo>(&handle).expect("emitting failed");
+    ///     Test::default().emit::<test::FFoo>(&handle).expect("emitting failed");
     /// }
     ///
     /// fn main() {}
@@ -116,7 +116,7 @@ pub trait Emit: Sized {
     ///
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {
-    ///     Test::default().update::<test::Bar>(&handle, true).expect("emitting failed");
+    ///     Test::default().update::<test::FBar>(&handle, true).expect("emitting failed");
     /// }
     ///
     /// fn main() {}

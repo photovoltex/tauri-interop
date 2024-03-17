@@ -32,12 +32,12 @@ pub struct NamingTestDefault {
 }
 
 fn test_naming() {
-    test_mod::Bar;
-    test_mod::Foo;
-    NamingTestEnumField::Bar;
-    NamingTestEnumField::Foo;
-    naming_test_default::Bar;
-    naming_test_default::Foo;
+    test_mod::FBar;
+    test_mod::FFoo;
+    NamingTestEnumField::FBar;
+    NamingTestEnumField::FFoo;
+    naming_test_default::FBar;
+    naming_test_default::FFoo;
 }
 
 // /// not allowed

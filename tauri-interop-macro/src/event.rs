@@ -57,7 +57,7 @@ fn prepare_event(derive_input: DeriveInput) -> EventStruct {
         .iter()
         .map(|field| {
             let field_ident = field.ident.as_ref().unwrap();
-            let field_name = format_ident!("{}", field_ident.to_string().to_case(Case::Pascal));
+            let field_name = format_ident!("F{}", field_ident.to_string().to_case(Case::Pascal));
 
             EventField {
                 field_name,

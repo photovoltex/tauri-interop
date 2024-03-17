@@ -42,11 +42,17 @@ mod event;
 ///
 /// ```
 /// use tauri_interop_macro::Event;
+/// use serde::{Serialize, Deserialize};
 ///
+/// #[derive(Default, Clone, Serialize, Deserialize)]
+/// pub struct Bar {
+///     value: bool
+/// }
+/// 
 /// #[derive(Event)]
 /// struct EventModel {
 ///     foo: String,
-///     pub bar: bool
+///     pub bar: Bar
 /// }
 /// 
 /// impl tauri_interop::event::ManagedEmit for EventModel {}
