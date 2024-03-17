@@ -31,8 +31,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
 
     let stream = quote! {
         pub mod #mod_name {
-            use super::#name;
-            use ::tauri_interop::event::Field;
+            use super::*;
 
             #( #listen_fields )*
         }
@@ -74,7 +73,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
     let stream = quote! {
         #get_cmd_fn
         
-        impl Field<#parent> for #name {
+        impl ::tauri_interop::event::Field<#parent> for #name {
             type Type = #parent_field_ty;
             const EVENT_NAME: &'static str = #event_name;
             

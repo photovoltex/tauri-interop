@@ -4,24 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tauri-interop = { path = "../..", default-features = false, features = ["event", "initial_value"] }
+tauri-interop = { path = "../..", features = ["event", "initial_value"] }
 
 # common
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
-# host target
-tauri = { version = "1.6", optional = true }
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tauri = { version = "1.6" }
 
-# wasm target
-js-sys = { version = "0.3", optional = true }
-serde-wasm-bindgen = { version = "0.6", optional = true }
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
-wasm-bindgen-futures = {version = "0.4", optional = true}
+[target.'cfg(target_family = "wasm")'.dependencies]
+js-sys = { version = "0.3" }
+serde-wasm-bindgen = { version = "0.6" }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+wasm-bindgen-futures = { version = "0.4" }
 leptos = { version = "0.6", features = ["csr"], optional = true }
 
 [features]
-default = [ "host" ]
-host    = [ "dep:tauri" ]
-wasm    = [ "dep:js-sys", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:wasm-bindgen-futures"]
-leptos  = [ "dep:leptos", "tauri-interop/leptos" ]
+leptos = ["dep:leptos", "tauri-interop/leptos"]

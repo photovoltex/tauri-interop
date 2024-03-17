@@ -3483,7 +3483,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "js-sys",
  "leptos",
@@ -3499,9 +3499,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop-macro"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dbfaea1629f9987e8817846addaffef3b24ab5e132e584f371625e9d49b4191"
+version = "2.1.1"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",

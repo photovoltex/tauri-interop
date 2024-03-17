@@ -21,7 +21,7 @@ fn main() {
     });
 
     wasm_bindgen_futures::spawn_local(async move {
-        let handle_bar = TestState::listen_to::<test_mod::Bar>(|echo| log::info!("bar: {echo}"))
+        let handle_bar = TestState::listen_to::<test_mod::FBar>(|echo| log::info!("bar: {echo}"))
             .await
             .unwrap();
 
@@ -45,7 +45,7 @@ fn main() {
 fn App() -> impl IntoView {
     use leptos::SignalGet;
 
-    let bar = TestState::use_field::<test_mod::Bar>(Some(true));
+    let bar = TestState::use_field::<test_mod::FBar>(Some(true));
 
     let exit = move |_| api::model::other_cmd::stop_application();
 
@@ -71,7 +71,7 @@ fn Foo() -> impl IntoView {
         api::cmd::emit();
     }).forget();
 
-    let foo = TestState::use_field::<test_mod::Foo>(None);
+    let foo = TestState::use_field::<test_mod::FFoo>(None);
 
     view! { <h1>{foo}</h1> }
 }

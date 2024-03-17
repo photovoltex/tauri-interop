@@ -8,6 +8,8 @@ pub use emit::*;
 #[cfg(any(target_family = "wasm", doc))]
 #[doc(cfg(target_family = "wasm"))]
 pub use listen::*;
+#[cfg(doc)]
+use tauri_interop_macro::{Emit, EmitField, Event, Listen, ListenField};
 
 /// traits for event emitting in the host code
 #[cfg(not(target_family = "wasm"))]
@@ -19,7 +21,34 @@ mod emit;
 #[doc(cfg(target_family = "wasm"))]
 mod listen;
 
+#[allow(clippy::needless_doctest_main)]
 /// Trait defining a [Field] to a related struct implementing [Parent] with the related [Field::Type]
+///
+/// When using [Event], [Emit] or [Listen], for each field of the struct, a struct named after the 
+/// field is generated. The field naming is snake_case to PascalCase, but because of the possibility
+/// that the type and the field name are the same, the generated field has a "F" appended at the 
+/// beginning to separate each other and avoid type collision.
+/// 
+/// ```
+/// use serde::{Deserialize, Serialize};
+/// use tauri_interop::{Event, event::ManagedEmit};
+/// 
+/// #[derive(Default, Clone, Serialize, Deserialize)]
+/// struct Bar {
+///     foo: u16
+/// }
+///
+/// #[derive(Event)]
+/// struct Test {
+///     bar: Bar
+/// }
+/// 
+/// impl ManagedEmit for Test {}
+///
+/// fn main() {
+///     let _ = test::FBar;
+/// }
+/// ```
 pub trait Field<P>
 where
     P: Parent,

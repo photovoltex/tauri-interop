@@ -61,8 +61,8 @@ pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
         "foo"
     };
 
-    state.update::<test_mod::Foo>(&handle, foo_value.into()).unwrap();
-    state.update::<test_mod::Bar>(&handle, bar_value).unwrap();
+    state.update::<test_mod::FFoo>(&handle, foo_value.into()).unwrap();
+    state.update::<test_mod::FBar>(&handle, bar_value).unwrap();
 }
 
 tauri_interop::collect_commands!();

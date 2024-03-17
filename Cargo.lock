@@ -3319,7 +3319,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "js-sys",
  "leptos",
@@ -3327,7 +3327,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "tauri",
- "tauri-interop-macro 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tauri-interop-macro",
  "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3335,7 +3335,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-interop-macro"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
@@ -3347,20 +3347,6 @@ dependencies = [
  "syn 2.0.52",
  "tauri",
  "tauri-interop",
-]
-
-[[package]]
-name = "tauri-interop-macro"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6107bb6b43eaa7663d5b5e6aa4558f81fad2589f21c9a069802432b0a0a6e4e"
-dependencies = [
- "convert_case 0.6.0",
- "lazy_static",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 2.0.52",
 ]
 
 [[package]]

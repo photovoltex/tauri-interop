@@ -10,7 +10,7 @@ default-target = "wasm32-unknown-unknown"
 members = ["src-tauri", "api"]
 
 [dependencies]
-api = { path = "./api", default-features = false, features = [ "wasm" ]}
+api = { path = "./api" }
 
 console_error_panic_hook = "^0.1"
 console_log = "^1.0"

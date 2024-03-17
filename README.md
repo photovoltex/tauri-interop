@@ -20,3 +20,11 @@ The crates therefore provides the following features:
 - collect and register all defined tauri-commands
 - QOL-macros to exclude multiple imports in wasm or the host architecture
 - easier usage of [tauri's event feature](https://tauri.app/v1/guides/features/events/)
+
+### Note
+
+The library uses a resolver 2 features to allow easy inclusion without configuration. When working with virtual 
+workspaces the resolver defaults to 1. In that case it is required to set the resolver manually to version 2,  
+otherwise the [target specific compilation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies)
+will not resolve correctly. When the wrong resolver is used, an error should state that the `Listen` trait is missing.
+
