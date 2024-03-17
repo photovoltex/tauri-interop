@@ -3500,8 +3500,6 @@ dependencies = [
 [[package]]
 name = "tauri-interop-macro"
 version = "2.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b5d064725d13c1bf969fa8d7cc00a0d2cb6ac617d68d1eb9b45d600c9a353d7"
 dependencies = [
  "convert_case 0.6.0",
  "lazy_static",
