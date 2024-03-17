@@ -114,12 +114,14 @@ impl ListenHandle {
         // creating this signal in a leptos component holds the value in scope, and drops it automatically
         let handle = leptos::create_rw_signal(None);
         leptos::spawn_local(async move {
-            if cfg!(feature = "initial_value") && acquire_initial_value {
+            #[cfg(any(all(target_family = "wasm", feature = "initial_value")))]
+            if acquire_initial_value {
                 match F::get_value().await {
                     Ok(value) => set_signal.set(value),
                     Err(why) => log::error!("{why}"),
                 }
             }
+            
 
             let listen_handle = ListenHandle::register(F::EVENT_NAME, move |value: F::Type| {
                 log::trace!("update for {}", F::EVENT_NAME);
