@@ -1,25 +1,14 @@
+use js_sys::{JsString, RegExp};
 use serde::de::DeserializeOwned;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    /// Fire and forget invoke/command call
+    /// Binding for tauri's global invoke function
     ///
-    /// [Tauri Commands](https://tauri.app/v1/guides/features/command)
-    #[wasm_bindgen(js_name = "invoke", js_namespace = ["window", "__TAURI__", "tauri"])]
-    pub fn invoke(cmd: &str, args: JsValue);
-
-    /// [invoke] variant that awaits the returned value
-    ///
-    /// [Async Commands](https://tauri.app/v1/guides/features/command/#async-commands)
-    #[wasm_bindgen(js_name = "invoke", js_namespace = ["window", "__TAURI__", "tauri"])]
-    pub async fn async_invoke(cmd: &str, args: JsValue) -> JsValue;
-
-    /// [async_invoke] variant that additionally returns a possible error
-    ///
-    /// [Error Handling](https://tauri.app/v1/guides/features/command/#error-handling)
-    #[wasm_bindgen(catch, js_name = "invoke", js_namespace = ["window", "__TAURI__", "tauri"])]
-    pub async fn invoke_catch(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
+    /// - [Tauri Commands](https://tauri.app/v1/guides/features/command)
+    #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "tauri"])]
+    pub async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
 
     /// The binding for the frontend that listens to events
     ///
@@ -33,25 +22,76 @@ extern "C" {
     ) -> Result<JsValue, JsValue>;
 }
 
-/// Wrapper for [async_invoke], to return an
-/// expected [DeserializeOwned] object
-pub async fn wrapped_async_invoke<T>(command: &str, args: JsValue) -> T
-where
-    T: DeserializeOwned,
-{
-    let value = async_invoke(command, args).await;
-    serde_wasm_bindgen::from_value(value).expect("conversion error")
+enum InvokeResult {
+    Ok(JsValue),
+    Err(JsValue),
+    NotRegistered(String),
 }
 
-/// Wrapper for [invoke_catch], to return an
-/// expected [Result<T, E>] where both generics are [DeserializeOwned]
-pub async fn wrapped_invoke_catch<T, E>(command: &str, args: JsValue) -> Result<T, E>
+/// Wrapper for [invoke], to handle an unregistered function
+async fn wrapped_invoke(command: &str, args: JsValue) -> InvokeResult {
+    match invoke(command, args).await {
+        Ok(value) => InvokeResult::Ok(value),
+        Err(value) => {
+            if let Some(string) = value.dyn_ref::<JsString>() {
+                let regex = RegExp::new("command (\\w+) not found", "g");
+                if string.match_(&regex).is_some() {
+                    log::error!("{string}");
+                    return InvokeResult::NotRegistered(string.as_string().unwrap());
+                }
+            }
+            
+            InvokeResult::Err(value)
+        },
+    }
+}
+
+/// Wrapper for [wait_invoke], to send a command without waiting for it 
+pub fn fire_and_forget_invoke(command: &'static str, args: JsValue) {
+    wasm_bindgen_futures::spawn_local(wait_invoke(command, args))
+}
+
+/// Wrapper for [invoke], to await a command execution without handling the returned values
+pub async fn wait_invoke(command: &'static str, args: JsValue) {
+    match wrapped_invoke(command, args).await {
+        InvokeResult::NotRegistered(why) => log::error!("{why}"),
+        _ => {}
+    }
+}
+
+/// Wrapper for [invoke], to return an expected [DeserializeOwned] item
+pub async fn return_invoke<T>(command: &str, args: JsValue) -> T
 where
-    T: DeserializeOwned,
+    T: Default + DeserializeOwned,
+{
+    match wrapped_invoke(command, args).await {
+        InvokeResult::Ok(value) => serde_wasm_bindgen::from_value(value).unwrap_or_else(|why| {
+            log::error!("Conversion failed: {why}");
+            Default::default()
+        }),
+        InvokeResult::NotRegistered(why) => {
+            log::error!("{why}");
+            Default::default()
+        },
+        _ => Default::default(),
+    }
+}
+
+/// Wrapper for [invoke], to return an expected [Result<T, E>]
+pub async fn catch_invoke<T, E>(command: &str, args: JsValue) -> Result<T, E>
+where
+    T: Default + DeserializeOwned,
     E: DeserializeOwned,
 {
-    invoke_catch(command, args)
-        .await
-        .map(|value| serde_wasm_bindgen::from_value(value).expect("ok: conversion error"))
-        .map_err(|value| serde_wasm_bindgen::from_value(value).expect("err: conversion error"))
+    match wrapped_invoke(command, args).await {
+        InvokeResult::Ok(value) => Ok(serde_wasm_bindgen::from_value(value).unwrap_or_else(|why| {
+            log::error!("Conversion failed: {why}");
+            Default::default()
+        })),
+        InvokeResult::Err(value) => Err(serde_wasm_bindgen::from_value(value).unwrap()),
+        InvokeResult::NotRegistered(why) => {
+            log::error!("{why}");
+            Ok(Default::default())
+        },
+    }
 }

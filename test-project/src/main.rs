@@ -45,6 +45,7 @@ fn main() {
 fn App() -> impl IntoView {
     use leptos::SignalGet;
 
+    let _bar = NamingTestEnum::use_field::<NamingTestEnumField::FBar>(None);
     let bar = TestState::use_field::<test_mod::FBar>(Some(true));
 
     let exit = move |_| api::model::other_cmd::stop_application();
