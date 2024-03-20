@@ -25,7 +25,7 @@ extern "C" {
 enum InvokeResult {
     Ok(JsValue),
     Err(JsValue),
-    NotRegistered(String),
+    NotRegistered,
 }
 
 /// Wrapper for [invoke], to handle an unregistered function
@@ -36,8 +36,8 @@ async fn wrapped_invoke(command: &str, args: JsValue) -> InvokeResult {
             if let Some(string) = value.dyn_ref::<JsString>() {
                 let regex = RegExp::new("command (\\w+) not found", "g");
                 if string.match_(&regex).is_some() {
-                    log::error!("{string}");
-                    return InvokeResult::NotRegistered(string.as_string().unwrap());
+                    log::error!("Error: {string}");
+                    return InvokeResult::NotRegistered;
                 }
             }
             
@@ -53,10 +53,7 @@ pub fn fire_and_forget_invoke(command: &'static str, args: JsValue) {
 
 /// Wrapper for [invoke], to await a command execution without handling the returned values
 pub async fn wait_invoke(command: &'static str, args: JsValue) {
-    match wrapped_invoke(command, args).await {
-        InvokeResult::NotRegistered(why) => log::error!("{why}"),
-        _ => {}
-    }
+    wrapped_invoke(command, args).await;
 }
 
 /// Wrapper for [invoke], to return an expected [DeserializeOwned] item
@@ -69,10 +66,6 @@ where
             log::error!("Conversion failed: {why}");
             Default::default()
         }),
-        InvokeResult::NotRegistered(why) => {
-            log::error!("{why}");
-            Default::default()
-        },
         _ => Default::default(),
     }
 }
@@ -89,9 +82,6 @@ where
             Default::default()
         })),
         InvokeResult::Err(value) => Err(serde_wasm_bindgen::from_value(value).unwrap()),
-        InvokeResult::NotRegistered(why) => {
-            log::error!("{why}");
-            Ok(Default::default())
-        },
+        InvokeResult::NotRegistered => Ok(Default::default()),
     }
 }
