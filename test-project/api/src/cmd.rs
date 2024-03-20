@@ -40,8 +40,8 @@ pub fn invoke_with_return_vec() -> Vec<i32> {
 }
 
 #[tauri_interop::command]
-pub fn result_test() -> Result<i32, String> {
-    Ok(69)
+pub fn result_test(switch_on: bool) -> Result<i32, String> {
+    switch_on.then_some(69).ok_or(String::from("oh nyo"))
 }
 
 #[tauri_interop::command]
