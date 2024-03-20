@@ -1,10 +1,11 @@
 #![allow(clippy::disallowed_names)]
 
-use api::event::Listen;
-use api::model::{test_mod, TestState};
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]
-use leptos::{component, view, IntoView};
+use leptos::{component, IntoView, view};
+
+use api::event::Listen;
+use api::model::{NamingTestEnum, NamingTestEnumField, test_mod, TestState};
 
 fn main() {
     console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
@@ -15,6 +16,11 @@ fn main() {
 
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);
+
+        let result = api::cmd::result_test(true).await.expect("positiv test successful");
+        log::info!("positiv test successful with: {result}");
+        let result = api::cmd::result_test(false).await.expect_err("negativ test successful");
+        log::info!("negativ test successful with: {result}");
 
         api::cmd::await_heavy_computing().await;
         log::info!("heavy computing finished")
@@ -45,6 +51,7 @@ fn main() {
 fn App() -> impl IntoView {
     use leptos::SignalGet;
 
+    let _bar = NamingTestEnum::use_field::<NamingTestEnumField::FBar>(None);
     let bar = TestState::use_field::<test_mod::FBar>(Some(true));
 
     let exit = move |_| api::model::other_cmd::stop_application();

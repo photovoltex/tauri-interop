@@ -23,9 +23,10 @@ impl Invoke {
 
     pub fn as_expr(&self, cmd_name: String, arg_name: &Ident) -> Expr {
         let expr: Ident = match self {
-            Invoke::Empty => parse_quote!(invoke),
-            Invoke::Async | Invoke::AsyncEmpty => parse_quote!(wrapped_async_invoke),
-            Invoke::AsyncResult => parse_quote!(wrapped_invoke_catch),
+            Invoke::Empty => parse_quote!(fire_and_forget_invoke),
+            Invoke::AsyncEmpty => parse_quote!(wait_invoke),
+            Invoke::Async => parse_quote!(return_invoke),
+            Invoke::AsyncResult => parse_quote!(catch_invoke),
         };
 
         let call = parse_quote!( ::tauri_interop::command::bindings::#expr(#cmd_name, #arg_name) );

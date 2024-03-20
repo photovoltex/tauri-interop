@@ -14,6 +14,6 @@ tauri_interop::combine_handlers!(
     cmd,
     model::other_cmd,
     model::test_mod,
-    model::NamingTestEnumField,
+    // model::NamingTestEnumField,
     model::naming_test_default
 );
