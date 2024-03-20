@@ -108,6 +108,7 @@ impl ListenHandle {
     {
         use leptos::SignalSet;
 
+        #[cfg(any(all(target_family = "wasm", feature = "initial_value")))]
         let acquire_initial_value = initial_value.is_none();
         let (signal, set_signal) = leptos::create_signal(initial_value.unwrap_or_default());
 

@@ -81,6 +81,8 @@ where
     fn update(s: &mut P, handle: &AppHandle<Wry>, v: Self::Type) -> Result<(), Error>;
 }
 
+#[cfg(any(feature = "initial_value", doc))]
+#[doc(cfg(feature = "initial_value"))]
 /// General errors that can happen during event exchange
 #[derive(Debug, Serialize, Deserialize, thiserror::Error)]
 pub enum EventError {
