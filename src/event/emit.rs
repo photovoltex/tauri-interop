@@ -61,6 +61,7 @@ pub trait Emit: Sized {
     ///     pub bar: bool,
     /// }
     /// 
+    /// #[cfg(feature = "initial_value")]
     /// impl tauri_interop::event::ManagedEmit for Test {}
     ///
     /// #[tauri_interop::command]
@@ -85,6 +86,7 @@ pub trait Emit: Sized {
     ///     pub bar: bool,
     /// }
     ///
+    /// #[cfg(feature = "initial_value")]
     /// impl tauri_interop::event::ManagedEmit for Test {}
     /// 
     /// #[tauri_interop::command]
@@ -103,7 +105,8 @@ pub trait Emit: Sized {
     /// ### Example
     ///
     /// ```
-    /// use tauri_interop::{command::TauriAppHandle, event::Emit, Event};
+    /// use tauri_interop::{command::TauriAppHandle, Event, event::Emit};
+    ///
     ///
     /// #[derive(Default, Event)]
     /// pub struct Test {
@@ -111,7 +114,7 @@ pub trait Emit: Sized {
     ///     pub bar: bool,
     /// }
     ///
-    /// // require because we compile 
+    /// #[cfg(feature = "initial_value")]
     /// impl tauri_interop::event::ManagedEmit for Test {}
     ///
     /// #[tauri_interop::command]

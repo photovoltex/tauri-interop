@@ -31,7 +31,10 @@ jobs:
         cd tauri-interop-macro
         cargo test --features event,leptos,initial_value
 
-    - name: Run tests for crate
+    - name: Run tests for crate (no features)
+      run: cargo test --features=event
+
+    - name: Run tests for crate (all-features)
       run: cargo test --all-features
 
     - name: Build test-project (wasm)

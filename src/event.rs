@@ -1,4 +1,6 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
+#[cfg(any(feature = "initial_value", doc))]
+use serde::Deserialize;
 #[cfg(not(target_family = "wasm"))]
 use tauri::{AppHandle, Error, Wry};
 
@@ -24,15 +26,15 @@ mod listen;
 #[allow(clippy::needless_doctest_main)]
 /// Trait defining a [Field] to a related struct implementing [Parent] with the related [Field::Type]
 ///
-/// When using [Event], [Emit] or [Listen], for each field of the struct, a struct named after the 
+/// When using [Event], [Emit] or [Listen], for each field of the struct, a struct named after the
 /// field is generated. The field naming is snake_case to PascalCase, but because of the possibility
-/// that the type and the field name are the same, the generated field has a "F" appended at the 
+/// that the type and the field name are the same, the generated field has a "F" appended at the
 /// beginning to separate each other and avoid type collision.
-/// 
+///
 /// ```
 /// use serde::{Deserialize, Serialize};
-/// use tauri_interop::{Event, event::ManagedEmit};
-/// 
+/// use tauri_interop::Event;
+///
 /// #[derive(Default, Clone, Serialize, Deserialize)]
 /// struct Bar {
 ///     foo: u16
@@ -42,8 +44,9 @@ mod listen;
 /// struct Test {
 ///     bar: Bar
 /// }
-/// 
-/// impl ManagedEmit for Test {}
+///
+/// #[cfg(feature = "initial_value")]
+/// impl tauri_interop::event::ManagedEmit for Test {}
 ///
 /// fn main() {
 ///     let _ = test::FBar;
