@@ -4,6 +4,11 @@ use super::Field;
 #[cfg(doc)]
 use super::Listen;
 
+#[cfg(feature = "initial_value")]
+#[doc(cfg(feature = "initial_value"))]
+/// A mod containing functions to acquire a wrapped state manged by tauri
+pub mod state_helper;
+
 /// The trait which needs to be implemented for a [Field]
 ///
 /// Conditionally changes between [Listen] and [Emit] or [ManagedEmit]
@@ -22,27 +27,22 @@ pub trait Parent = ManagedEmit;
 #[cfg(feature = "initial_value")]
 #[doc(cfg(feature = "initial_value"))]
 pub trait ManagedEmit: Emit
-where
-    Self: 'static,
+    where
+        Self: 'static + Send + Sync,
 {
     /// Gets the value of a [Field] from [AppHandle]
     ///
-    /// The default implementation acquires [Self] directly. Override the provided
-    /// method when [Self] is not directly managed. For example, this could be the
-    /// case when the [interior mutability](https://doc.rust-lang.org/reference/interior-mutability.html)
+    /// The default implementation acquires [Self] directly using [state_helper::directly].
+    /// Override the provided method when [Self] is not directly managed. For example,
+    /// this could be the case when the [interior mutability](https://doc.rust-lang.org/reference/interior-mutability.html)
     /// pattern is used to allow mutation of [Self] while being managed by tauri.
+    ///
+    /// Default state acquiring is provided via [state_helper].
     fn get_value<F: Field<Self>>(
         handle: &AppHandle,
-        get_field_value: impl Fn(&Self) -> F::Type,
-    ) -> Option<F::Type>
-    where
-        Self: Send + Sync,
-    {
-        use tauri::Manager;
-
-        let state = handle.try_state::<Self>()?;
-        let state = get_field_value(&state);
-        Some(state)
+        f: impl Fn(&Self) -> F::Type,
+    ) -> Option<F::Type> {
+        state_helper::directly::<Self, F>(handle, f)
     }
 }
 
@@ -60,7 +60,7 @@ pub trait Emit: Sized {
     ///     foo: String,
     ///     pub bar: bool,
     /// }
-    /// 
+    ///
     /// #[cfg(feature = "initial_value")]
     /// impl tauri_interop::event::ManagedEmit for Test {}
     ///
@@ -88,7 +88,7 @@ pub trait Emit: Sized {
     ///
     /// #[cfg(feature = "initial_value")]
     /// impl tauri_interop::event::ManagedEmit for Test {}
-    /// 
+    ///
     /// #[tauri_interop::command]
     /// fn emit_bar(handle: TauriAppHandle) {
     ///     Test::default().emit::<test::FFoo>(&handle).expect("emitting failed");
@@ -97,8 +97,8 @@ pub trait Emit: Sized {
     /// fn main() {}
     /// ```
     fn emit<F: Field<Self>>(&self, handle: &AppHandle<Wry>) -> Result<(), Error>
-    where
-        Self: Parent;
+        where
+            Self: Parent;
 
     /// Update a single field and emit it afterward
     ///
@@ -129,6 +129,6 @@ pub trait Emit: Sized {
         handle: &AppHandle<Wry>,
         field: F::Type,
     ) -> Result<(), Error>
-    where
-        Self: Parent;
+        where
+            Self: Parent;
 }
