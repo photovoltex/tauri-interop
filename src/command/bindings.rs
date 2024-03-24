@@ -15,6 +15,8 @@ extern "C" {
     /// [Events](https://tauri.app/v1/guides/features/events)
     #[cfg(feature = "event")]
     #[doc(cfg(feature = "event"))]
+    // for some reason this doc comment is seen as unused... 
+    #[allow(unused_doc_comments)]
     #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "event"])]
     pub async fn listen(
         event: &str,
