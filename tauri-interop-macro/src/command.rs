@@ -6,8 +6,8 @@ use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, FnArg, ItemFn
 
 use crate::command::wrapper::{InvokeArgument, InvokeCommand};
 
-mod wrapper;
 pub mod collect;
+mod wrapper;
 
 pub fn convert_to_binding(stream: TokenStream) -> TokenStream {
     let item_fn = parse_macro_input!(stream as ItemFn);

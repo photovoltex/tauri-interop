@@ -24,11 +24,11 @@ pub fn greet(name_to_greet: &str) -> String {
 }
 
 #[tauri_interop::command]
-pub fn invoke_with_return(window: tauri::Window) -> String {
+pub fn invoke_with_return(window: tauri::WebviewWindow) -> String {
     use tauri::Manager;
 
     window
-        .windows()
+        .webview_windows()
         .into_keys()
         .intersperse(String::from(","))
         .collect()

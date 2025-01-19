@@ -27,8 +27,8 @@ pub trait Parent = ManagedEmit;
 #[cfg(feature = "initial_value")]
 #[doc(cfg(feature = "initial_value"))]
 pub trait ManagedEmit: Emit
-    where
-        Self: 'static + Send + Sync,
+where
+    Self: 'static + Send + Sync,
 {
     /// Gets the value of a [Field] from [AppHandle]
     ///
@@ -97,8 +97,8 @@ pub trait Emit: Sized {
     /// fn main() {}
     /// ```
     fn emit<F: Field<Self>>(&self, handle: &AppHandle<Wry>) -> Result<(), Error>
-        where
-            Self: Parent;
+    where
+        Self: Parent;
 
     /// Update a single field and emit it afterward
     ///
@@ -129,6 +129,6 @@ pub trait Emit: Sized {
         handle: &AppHandle<Wry>,
         field: F::Type,
     ) -> Result<(), Error>
-        where
-            Self: Parent;
+    where
+        Self: Parent;
 }

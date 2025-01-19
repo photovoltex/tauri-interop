@@ -8,7 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(api::get_all_handlers())
         .setup(move |app| {
-            let main_window = app.handle().get_window("main").unwrap();
+            let main_window = app.handle().get_webview_window("main").unwrap();
 
             // debugging: always open dev tools on launch
             main_window.open_devtools();

@@ -4,5 +4,5 @@ fn main() {
         .try_init()
         .unwrap();
 
-    src_tauri::run()
+    app_lib::run()
 }

@@ -3,7 +3,7 @@
 //!
 //! The main macros intended to be used are:
 //! - [macro@command], which is intended to be used as replacement to [macro@tauri::command]
-//! - [macro@Event], that provides an easier usage of the [Events feature of tauri](https://tauri.app/v1/guides/features/events/)
+//! - [macro@Event], that provides an easier usage of the [Events feature of tauri](https://v2.tauri.app/develop/calling-frontend/)
 //!     - derives [event::Listen] when compiling to wasm and [event::Emit] otherwise
 //!
 //! Additionally, some QOL macros ([host_usage] and [wasm_usage]) are provided that

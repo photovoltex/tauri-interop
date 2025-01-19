@@ -124,6 +124,6 @@ fn prepare_field(derive_input: DeriveInput) -> Field {
         event_name,
         name,
         attributes,
-        get_cmd
+        get_cmd,
     }
 }

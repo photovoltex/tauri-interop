@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 
 use quote::{quote, ToTokens};
-use syn::{DeriveInput, parse_macro_input};
+use syn::{parse_macro_input, DeriveInput};
 
 use crate::event::{EventField, EventStruct, Field, FieldAttributes};
 
@@ -105,7 +105,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
             pub fn #get_cmd(handle: ::tauri::AppHandle) -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {
                 use ::tauri::Manager;
                 use ::tauri_interop::event::{Field, ManagedEmit, EventError};
-            
+
                 #parent::get_value::<#name>(&handle, |parent| parent.#parent_field_name.clone())
                     .ok_or(EventError::StateIsNotRegistered(stringify!(#parent).into()))
             }
@@ -118,11 +118,11 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
             const EVENT_NAME: &'static str = #event_name;
 
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
-                use ::tauri::Manager;
+                use ::tauri::Emitter;
 
                 log::trace!("Emitted event [{}]", #event_name);
 
-                handle.emit_all(#event_name, parent.#parent_field_name.clone())
+                handle.emit(#event_name, parent.#parent_field_name.clone())
             }
 
             fn update(parent: &mut #parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
