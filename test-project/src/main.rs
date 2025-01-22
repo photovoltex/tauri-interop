@@ -2,10 +2,10 @@
 
 use gloo_timers::callback::Timeout;
 #[cfg(feature = "leptos")]
-use leptos::{component, IntoView, view};
+use leptos::prelude::*;
 
 use api::event::Listen;
-use api::model::{NamingTestEnum, NamingTestEnumField, test_mod, TestState};
+use api::model::{test_mod, NamingTestEnum, NamingTestEnumField, TestState};
 
 fn main() {
     console_log::init_with_level(log::Level::Trace).expect("no errors during logger init");
@@ -17,9 +17,13 @@ fn main() {
     wasm_bindgen_futures::spawn_local(async {
         log::info!("{}", api::cmd::greet("frontend").await);
 
-        let result = api::cmd::result_test(true).await.expect("positiv test successful");
+        let result = api::cmd::result_test(true)
+            .await
+            .expect("positiv test successful");
         log::info!("positiv test successful with: {result}");
-        let result = api::cmd::result_test(false).await.expect_err("negativ test successful");
+        let result = api::cmd::result_test(false)
+            .await
+            .expect_err("negativ test successful");
         log::info!("negativ test successful with: {result}");
 
         api::cmd::await_heavy_computing().await;
@@ -43,14 +47,12 @@ fn main() {
     Timeout::new(3000, api::cmd::emit).forget();
 
     #[cfg(feature = "leptos")]
-    Timeout::new(5000, || leptos::mount_to_body(|| view! { <App /> })).forget();
+    Timeout::new(5000, || leptos::mount::mount_to_body(|| view! { <App /> })).forget();
 }
 
 #[cfg(feature = "leptos")]
 #[component]
 fn App() -> impl IntoView {
-    use leptos::SignalGet;
-
     let _bar = NamingTestEnum::use_field::<NamingTestEnumField::FBar>(None);
     let bar = TestState::use_field::<test_mod::FBar>(Some(true));
 
@@ -76,7 +78,8 @@ fn Foo() -> impl IntoView {
     Timeout::new(3000, || {
         log::info!("emit foo");
         api::cmd::emit();
-    }).forget();
+    })
+    .forget();
 
     let foo = TestState::use_field::<test_mod::FFoo>(None);
 

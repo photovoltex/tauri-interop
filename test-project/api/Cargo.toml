@@ -18,7 +18,7 @@ js-sys = { version = "0.3" }
 serde-wasm-bindgen = { version = "0.6" }
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = { version = "0.4" }
-leptos = { version = "0.6", features = ["csr"], optional = true }
+leptos = { version = "^0.7", features = ["csr"], optional = true }
 
 [features]
 leptos = ["dep:leptos", "tauri-interop/leptos"]

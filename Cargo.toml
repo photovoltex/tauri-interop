@@ -35,7 +35,7 @@ serde-wasm-bindgen = "0.6"
 log = "0.4"
 
 # leptos feature
-leptos = { version = "0.6", optional = true }
+leptos = { version = "0.7", optional = true }
 
 # only include if not wasm
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
