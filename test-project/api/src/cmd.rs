@@ -55,13 +55,11 @@ pub fn emit(state: TauriState<RwLock<TestState>>, handle: TauriAppHandle) {
     let mut state = state.write().unwrap();
 
     let bar_value = !state.bar;
-    let foo_value = if state.bar {
-        "bar"
-    } else {
-        "foo"
-    };
+    let foo_value = if state.bar { "bar" } else { "foo" };
 
-    state.update::<test_mod::FFoo>(&handle, foo_value.into()).unwrap();
+    state
+        .update::<test_mod::FFoo>(&handle, foo_value.into())
+        .unwrap();
     state.update::<test_mod::FBar>(&handle, bar_value).unwrap();
 }
 

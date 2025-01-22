@@ -48,13 +48,13 @@ mod event;
 /// pub struct Bar {
 ///     value: bool
 /// }
-/// 
+///
 /// #[derive(Event)]
 /// struct EventModel {
 ///     foo: String,
 ///     pub bar: Bar
 /// }
-/// 
+///
 /// impl tauri_interop::event::ManagedEmit for EventModel {}
 ///
 /// // has to be defined in this example, otherwise the
@@ -322,9 +322,9 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn combine_handlers(stream: TokenStream) -> TokenStream {
     if cfg!(feature = "_wasm") {
-        return Default::default()
+        return Default::default();
     }
-    
+
     let command_mods = Punctuated::<ExprPath, Token![,]>::parse_terminated
         .parse2(stream.into())
         .unwrap()

@@ -1,6 +1,6 @@
+use api::model::TestState;
 use std::sync::RwLock;
 use tauri::Manager;
-use api::model::TestState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
