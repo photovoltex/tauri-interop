@@ -6,16 +6,16 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     /// Binding for tauri's global invoke function
     ///
-    /// - [Tauri Commands](https://tauri.app/v1/guides/features/command)
-    #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "tauri"])]
+    /// - [Tauri Commands](https://v2.tauri.app/develop/calling-rust/)
+    #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "core"])]
     pub async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
 
     /// The binding for the frontend that listens to events
     ///
-    /// [Events](https://tauri.app/v1/guides/features/events)
+    /// [Events](https://v2.tauri.app/develop/calling-frontend/)
     #[cfg(feature = "event")]
     #[doc(cfg(feature = "event"))]
-    // for some reason this doc comment is seen as unused... 
+    // for some reason this doc comment is seen as unused...
     #[allow(unused_doc_comments)]
     #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "event"])]
     pub async fn listen(
@@ -42,13 +42,13 @@ async fn wrapped_invoke(command: &str, args: JsValue) -> InvokeResult {
                     return InvokeResult::NotRegistered;
                 }
             }
-            
+
             InvokeResult::Err(value)
-        },
+        }
     }
 }
 
-/// Wrapper for [wait_invoke], to send a command without waiting for it 
+/// Wrapper for [wait_invoke], to send a command without waiting for it
 pub fn fire_and_forget_invoke(command: &'static str, args: JsValue) {
     wasm_bindgen_futures::spawn_local(wait_invoke(command, args))
 }
@@ -79,10 +79,12 @@ where
     E: DeserializeOwned,
 {
     match wrapped_invoke(command, args).await {
-        InvokeResult::Ok(value) => Ok(serde_wasm_bindgen::from_value(value).unwrap_or_else(|why| {
-            log::error!("Conversion failed: {why}");
-            Default::default()
-        })),
+        InvokeResult::Ok(value) => {
+            Ok(serde_wasm_bindgen::from_value(value).unwrap_or_else(|why| {
+                log::error!("Conversion failed: {why}");
+                Default::default()
+            }))
+        }
         InvokeResult::Err(value) => Err(serde_wasm_bindgen::from_value(value).unwrap()),
         InvokeResult::NotRegistered => Ok(Default::default()),
     }

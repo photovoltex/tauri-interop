@@ -1,6 +1,6 @@
-use serde::{de::DeserializeOwned, Serialize};
 #[cfg(any(feature = "initial_value", doc))]
 use serde::Deserialize;
+use serde::{de::DeserializeOwned, Serialize};
 #[cfg(not(target_family = "wasm"))]
 use tauri::{AppHandle, Error, Wry};
 
@@ -55,7 +55,7 @@ mod listen;
 pub trait Field<P>
 where
     P: Parent,
-    Self::Type: Default + Clone + Serialize + DeserializeOwned,
+    Self::Type: Default + Clone + Serialize + DeserializeOwned + 'static,
 {
     /// The type of the field
     type Type;

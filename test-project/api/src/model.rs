@@ -4,10 +4,10 @@
 
 // this mod at this position doesn't make much sense logic vise
 // for testing the combine feature tho it's a quite convenient spot :D
-#[tauri_interop::commands]
-pub mod other_cmd;
 #[cfg(not(target_family = "wasm"))]
 mod host_impl;
+#[tauri_interop::commands]
+pub mod other_cmd;
 
 use tauri_interop::Event;
 

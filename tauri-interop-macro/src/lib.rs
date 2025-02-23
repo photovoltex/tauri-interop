@@ -18,6 +18,7 @@ use syn::{
 use crate::command::collect::commands_to_punctuated;
 
 mod command;
+#[cfg(feature = "event")]
 mod event;
 
 /// Conditionally adds [Listen] or [Emit] to a struct.
@@ -48,13 +49,13 @@ mod event;
 /// pub struct Bar {
 ///     value: bool
 /// }
-/// 
+///
 /// #[derive(Event)]
 /// struct EventModel {
 ///     foo: String,
 ///     pub bar: Bar
 /// }
-/// 
+///
 /// impl tauri_interop::event::ManagedEmit for EventModel {}
 ///
 /// // has to be defined in this example, otherwise the
@@ -322,9 +323,9 @@ pub fn collect_commands(_: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn combine_handlers(stream: TokenStream) -> TokenStream {
     if cfg!(feature = "_wasm") {
-        return Default::default()
+        return Default::default();
     }
-    
+
     let command_mods = Punctuated::<ExprPath, Token![,]>::parse_terminated
         .parse2(stream.into())
         .unwrap()

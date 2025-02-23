@@ -65,7 +65,7 @@ pub fn get_handler_function(
     quote! {
         #[cfg(not(target_family = "wasm"))]
         #[doc = "auto generated function to register all configured commands"]
-        pub fn #fn_name() -> impl Fn(tauri::Invoke) {
+        pub fn #fn_name() -> impl Fn(tauri::ipc::Invoke) -> bool {
             #( use #include_mods; )*
 
             let handlers = vec! [ #( #commands ),* ];

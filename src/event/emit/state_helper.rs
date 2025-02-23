@@ -1,5 +1,5 @@
-use std::sync::{Mutex, RwLock};
 use super::*;
+use std::sync::{Mutex, RwLock};
 
 /// Acquires the state directly
 ///

@@ -137,7 +137,7 @@ pub fn prepare(function: ItemFn) -> InvokeCommand {
                         argument: fn_arg,
                         requires_lifetime: req_lf,
                     })
-                },
+                }
                 _ => None,
             }
         })

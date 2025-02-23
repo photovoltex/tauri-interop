@@ -1,14 +1,14 @@
 use js_sys::Function;
 #[cfg(feature = "leptos")]
-use leptos::ReadSignal;
+use leptos::prelude::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::command::bindings::listen;
 
+use super::Field;
 #[cfg(doc)]
 use super::{Emit, Parent};
-use super::Field;
 
 /// The trait which needs to be implemented for a [Field]
 ///
@@ -102,19 +102,19 @@ impl ListenHandle {
     /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
     #[doc(cfg(feature = "leptos"))]
-    pub fn use_register<P, F: Field<P>>(initial_value: Option<F::Type>) -> ReadSignal<F::Type>
+    pub fn use_register<P, F: Field<P>>(
+        initial_value: Option<F::Type>,
+    ) -> ReadSignal<<F as Field<P>>::Type, LocalStorage>
     where
         P: Parent,
     {
-        use leptos::SignalSet;
-
         #[cfg(any(all(target_family = "wasm", feature = "initial_value")))]
         let acquire_initial_value = initial_value.is_none();
-        let (signal, set_signal) = leptos::create_signal(initial_value.unwrap_or_default());
+        let (signal, set_signal) = signal_local(initial_value.unwrap_or_default());
 
         // creating this signal in a leptos component holds the value in scope, and drops it automatically
-        let handle = leptos::create_rw_signal(None);
-        leptos::spawn_local(async move {
+        let handle = RwSignal::new_local(None);
+        leptos::task::spawn_local(async move {
             #[cfg(any(all(target_family = "wasm", feature = "initial_value")))]
             if acquire_initial_value {
                 match F::get_value().await {
@@ -122,7 +122,6 @@ impl ListenHandle {
                     Err(why) => log::error!("{why}"),
                 }
             }
-            
 
             let listen_handle = ListenHandle::register(F::EVENT_NAME, move |value: F::Type| {
                 log::trace!("update for {}", F::EVENT_NAME);
@@ -196,7 +195,9 @@ pub trait Listen: Sized {
     /// ```
     #[cfg(feature = "leptos")]
     #[doc(cfg(feature = "leptos"))]
-    fn use_field<F: Field<Self>>(initial: Option<F::Type>) -> ReadSignal<F::Type>
+    fn use_field<F: Field<Self>>(
+        initial: Option<F::Type>,
+    ) -> ReadSignal<<F as Field<Self>>::Type, LocalStorage>
     where
         Self: Parent,
     {
