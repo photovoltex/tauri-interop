@@ -20,6 +20,8 @@ The crates therefore provides the following features:
 
 ## Compatability
 
+- toolchain: `nightly`
+
 | tauri-interop | tauri | leptos |
 |---------------|-------|--------|
 | <= 2.1.6      | 1.6   | 0.6    |

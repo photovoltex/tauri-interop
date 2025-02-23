@@ -27,7 +27,7 @@ tauri-interop-macro = { path = "./tauri-interop-macro" }
 #tauri-interop-macro = "2.1.4"
 
 js-sys = "0.3"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 thiserror = "2"
@@ -39,14 +39,14 @@ leptos = { version = "0.7", optional = true }
 
 # only include if not wasm
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tauri = { version = "^2.2", default-features = false, features = ["wry"] }
+tauri = { version = "^2", default-features = false, features = ["wry"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 tauri-interop-macro = { path = "./tauri-interop-macro", features = ["_wasm"] }
 #tauri-interop-macro = { version = "2.1.4", features = [ "_wasm" ] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-tauri = "^2.2"
+tauri = "^2"
 
 [features]
 default = []
