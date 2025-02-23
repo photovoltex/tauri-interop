@@ -18,6 +18,7 @@ use syn::{
 use crate::command::collect::commands_to_punctuated;
 
 mod command;
+#[cfg(feature = "event")]
 mod event;
 
 /// Conditionally adds [Listen] or [Emit] to a struct.
