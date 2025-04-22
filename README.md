@@ -44,7 +44,7 @@ The crates therefore provides the following features:
 Reasons for inclusion:
 - `log`: provides some logging what `tauri-interop` registers, sends or emits
 - `tauri`: to wrap the tauri macro and integrate with tauri
-- `serde`/`serde-wasm-bindgen`: de-/serialization for objects received and send via the ipc between ui and host 
+- `serde`/`serde-wasm-bindgen`: de-/serialization for objects received and sent via the ipc between ui and host 
 - `leptos`: for some specific leptos integration (only required when the corresponding feature is enabled)
 
 
