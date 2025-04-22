@@ -29,23 +29,23 @@ The crates therefore provides the following features:
 
 ### Required crates
 
-|                    | host | wasm |
-|--------------------|------|------|
-| log                | x    | x    |
-| tauri              | x    | -    |
-| serde              | (x)  | x    |
-| serde-wasm-bindgen | -    | x    |
-| leptos             | -    | x1   |
+|                      | host | wasm |
+|----------------------|------|------|
+| `log`                | x    | x    |
+| `tauri`              | x    | -    |
+| `serde`              | (x)  | x    |
+| `serde-wasm-bindgen` | -    | x    |
+| `leptos`             | -    | x1   |
 - x: required
 - x1: only required when the `leptos` feature is in use
 - -: not compatible
 - (x): possible, but not required
 
 Reasons for inclusion:
-- log: provides some logging what the interop crate does
-- tauri: to wrap the tauri macro and integrate with tauri
-- leptos: for some specific leptos integration (only required when the according feature is enabled)
-- serde/serde-wasm-bindgen: de-/serialization for objects received and send via the ipc between ui and host 
+- `log`: provides some logging what `tauri-interop` registers, sends or emits
+- `tauri`: to wrap the tauri macro and integrate with tauri
+- `serde`/`serde-wasm-bindgen`: de-/serialization for objects received and send via the ipc between ui and host 
+- `leptos`: for some specific leptos integration (only required when the corresponding feature is enabled)
 
 
 ## Getting started
@@ -54,8 +54,8 @@ There are two concepts that generally make sense when using a single language fo
 the backend crate into a library and binary, where the library will build a common usage for the front and backend 
 (which tauri v2 does out of the box). Or [creating a new crate](#creating-a-common-crate) that builds a common usage for both sides.
 
-Previously to `tauri@2` we could avoid a separate crate, but with version 2 it seems to be necessary to separate the 
-combined code into an own crate. 
+With `tauri` v1 we could avoid a separate crate, but with v2 it seems to be necessary to separate the common code 
+into a separate crate. 
 
 ### Init a new project
 
@@ -113,17 +113,14 @@ that we need to add a new module (will be referred as `cmd` or `cmd.rs` later). 
 restriction how the collection of commands and the command definition works from `tauri`. The important detail is, that 
 as long as the commands are not defined in `lib.rs` the restriction are neglectable.
 
-By doing that, we need to add `tauri` as dependency, with the restriction of only being added to the host target. This 
-should be already done if the [required crates](#required-crates) are added.
-
 With that done, our main binary can't find the `greet` command anymore to include in the `tauri::generate_handler!` 
 macro. To resolve this we need to call the `tauri_interop::collect_commands!()` macro at the end of the file, where we 
 moved the `greet` command, which should be `cmd.rs`. 
 
-The call of `tauri_interop::collect_commands!()` will then generate a function called `get_handlers` in the current 
-in the module where it was called. This function is intended to be called in place of `tauri::generate_handler!` and 
-will add the commands automatically annotated with `tauri_interop::command` to our tauri app. To create more complex
-command constellations `tauri_interop::combine_handlers!()` is provided to merge commands from multiple modules.
+The call of `tauri_interop::collect_commands!()` will then generate a function called `get_handlers` in the module 
+where it was called. This function is intended to be called in place of `tauri::generate_handler!` and will add the 
+commands automatically annotated with `tauri_interop::command` to our tauri app. To create more complex command 
+constellations `tauri_interop::combine_handlers!()` is provided to merge commands from multiple modules.
 
 Now we need to actually call the defined command in our `common` crate from our `wasm` code. To do that we just need to 
 go to `src/app.rs` and replace `invoke("greet", args).await.as_string().unwrap()` with `common::cmd::greet(&name).await`.
