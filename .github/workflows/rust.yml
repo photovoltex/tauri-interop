@@ -2,9 +2,34 @@ name: Rust
 
 on:
   push:
-    branches: [ "main", "v[0-9]+.[0-9]+.[0-9]+*" ]
+    branches: [dev, main]
+    paths:
+      [
+        "**.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "rustfmt.toml",
+        ".github/workflows/*",
+        "!*.md",
+        "!contrib/*",
+        "!docs/*",
+        "!LICENSE",
+        "!*.sh",
+      ]
   pull_request:
-    branches: [ "main", "v[0-9]+.[0-9]+.[0-9]+*" ]
+    paths:
+      [
+        "**.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "rustfmt.toml",
+        ".github/workflows/*",
+        "!*.md",
+        "!contrib/*",
+        "!docs/*",
+        "!LICENSE",
+        "!*.sh",
+      ]
 
 env:
   CARGO_TERM_COLOR: always
