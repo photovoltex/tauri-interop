@@ -2,4 +2,3 @@
 target/
 dist/
 Cargo.lock
-!test-project/Cargo.lock
