@@ -13,10 +13,6 @@ upgrade_version() {
     echo "upgrading version usage in root 'Cargo.toml'"
     sed -i -E "s/tauri-interop-macro = \{ version = \"[0-9]+\.[0-9]+\.[0-9]+\"/tauri-interop-macro = \{ version = \"$version\"/" Cargo.toml
     git add Cargo.toml
-  else
-    echo "using published macro version"
-    sed -i "s/tauri-interop-macro = { path/#tauri-interop-macro = { path/" Cargo.toml
-    sed -i "s/#tauri-interop-macro = { version/tauri-interop-macro = { version/" Cargo.toml
   fi
 
   if [ $dry = true ]; then
@@ -38,12 +34,4 @@ fi
 upgrade_version "tauri-interop" "Cargo.toml"
 if [ $dry = false ]; then
   git tag "v$version"
-fi
-
-sed -i "s/#tauri-interop-macro = { path/tauri-interop-macro = { path/" Cargo.toml
-sed -i "s/tauri-interop-macro = { version/#tauri-interop-macro = { version/" Cargo.toml
-
-if [ $dry = false ]; then
-  git add Cargo.toml
-  git commit -m "v$version: dev"
 fi
