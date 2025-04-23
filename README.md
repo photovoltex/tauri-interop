@@ -25,7 +25,7 @@ The crates therefore provides the following features:
 | tauri-interop | tauri | leptos |
 |---------------|-------|--------|
 | <= 2.1.6      | 1.6   | 0.6    |
-| current       | 2     | 0.7    |
+| \>= 2.2.0     | 2     | 0.7    |
 
 ### Required crates
 
