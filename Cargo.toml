@@ -9,6 +9,8 @@ package.license = "MIT OR Apache-2.0"
 [package.metadata.docs.rs]
 # see https://docs.rs/about/metadata for more options
 all-features = true
+rustc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [package]
 version = "2.2.0"
