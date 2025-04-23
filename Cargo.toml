@@ -13,7 +13,7 @@ rustc-args = ["--cfg", "docsrs"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package]
-version = "2.2.0"
+version = "2.2.1"
 edition.workspace = true
 keywords.workspace = true
 authors.workspace = true
