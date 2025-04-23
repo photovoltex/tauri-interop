@@ -98,7 +98,7 @@ impl ListenHandle {
     /// Providing [None] will unwrap into the default value. When feature `initial_value`
     /// is enabled [None] will try to get the value from tauri.
     ///
-    /// Internally it stores a created [ListenHandle] for `event` in a [leptos::RwSignal] to hold it in
+    /// Internally it stores a created [ListenHandle] for `event` in a [leptos::prelude::RwSignal] to hold it in
     /// scope, while it is used in a leptos [component](https://docs.rs/leptos_macro/0.5.2/leptos_macro/attr.component.html)
     #[cfg(feature = "leptos")]
     #[doc(cfg(feature = "leptos"))]

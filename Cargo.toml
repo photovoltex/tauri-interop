@@ -46,7 +46,7 @@ tauri = { version = "^2", default-features = false, features = ["wry"] }
 tauri-interop-macro = { version = "2.2.0", path = "./tauri-interop-macro", features = ["_wasm"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-tauri = "^2"
+tauri = { version = "^2", default-features = false, features = ["wry"] }
 
 [features]
 default = []
