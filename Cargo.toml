@@ -24,7 +24,7 @@ readme = "README.md"
 
 [dependencies]
 tauri-interop-macro = { path = "./tauri-interop-macro" }
-#tauri-interop-macro = "2.1.4"
+#tauri-interop-macro = { version = "2.1.4" }
 
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
