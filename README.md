@@ -27,28 +27,6 @@ The crates therefore provides the following features:
 | <= 2.1.6      | 1.6   | 0.6    |
 | \>= 2.2.0     | 2     | 0.7    |
 
-### Required crates
-
-|                      | host | wasm |
-|----------------------|------|------|
-| `log`                | x    | x    |
-| `tauri`              | x    | -    |
-| `serde`              | (x)  | x    |
-| `serde-wasm-bindgen` | -    | x    |
-| `leptos`             | -    | x1   |
-
-- x: required
-- x1: only required when the `leptos` feature is in use
-- -: not compatible
-- (x): possible, but not required
-
-Reasons for inclusion:
-
-- `log`: provides logging what `tauri-interop` registers, sends or emits
-- `tauri`: to wrap the tauri macro and integrate with tauri
-- `serde`/`serde-wasm-bindgen`: de-/serialization for objects received and sent via the ipc between ui and host
-- `leptos`: for some specific leptos integration (only required when the corresponding feature is enabled)
-
 ## Getting started
 
 There are two concepts that generally make sense when using a single language for the entire codebase. Either separating
@@ -89,16 +67,13 @@ the separation will look.
 ```toml
 [dependencies]
 tauri-interop = { version = "*", features = [] }
-log = "0.4"
 
 # host target
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tauri = { version = "2", features = [] }
 
 # wasm target
 [target.'cfg(target_family = "wasm")'.dependencies]
-serde = { version = "1", features = ["derive"] }
-serde-wasm-bindgen = "0.6"
+
 ```
 
 The same target specific inclusion can also be done in code with the following attributes:
@@ -117,8 +92,7 @@ struct WasmTarget;
 
 Create a new crate (we will refer to it as `common` later on) and add it as a member to the workspace (see root
 `Cargo.toml` in the `workspace` section). After the crate is a workspace member we can add `tauri-interop` to it and
-separate the dependency section like previously mentioned. Additionally add the crates mentioned in
-the [required crates](#required-crates)
+separate the dependency section like previously mentioned.
 section so that we don't get any compilation errors caused because of missing crates.
 
 When everything is done, it should be possible to add the new crate to the wasm and host crate. Which finishes the
@@ -131,11 +105,10 @@ and host part in one language by only writing our commands once.
 
 For that we can move the templates `greet` command defined in `src-tauri/src/lib.rs` into our new `common` crate. For
 that we need to add a new module (will be referred as `cmd` or `cmd.rs` later). This is necessary because of a
-restriction how the collection of commands and the command definition works from `tauri`. The important detail is, that
-as long as the commands are not defined in `lib.rs` the restriction are neglectable. Regardless the restrictions we need
-to modify the `greet` command slightly by making it public and replacing `tauri::command` with `tauri_interop::command`.
-`tauri_interop::command` is a wrapper for `tauri::command` when compiling to the host target, but will generate wasm
-bindings when compiling to wasm.
+restriction how the commands by `tauri` work. The restriction is described here in the [Second Note](https://tauri.app/develop/calling-rust/#basic-example). 
+Regardless the restrictions we need to modify the `greet` command slightly by making it public and replacing 
+`tauri::command` with `tauri_interop::command`. `tauri_interop::command` is a wrapper for `tauri::command` when 
+compiling to the host target, but will generate wasm bindings when compiling to wasm.
 
 With that done, our main binary can't find the `greet` command anymore to include in the `tauri::generate_handler!`
 macro. To resolve this we need to call the `tauri_interop::collect_commands!()` macro at the end of the file, where we
