@@ -48,3 +48,6 @@ pub mod event;
 
 #[doc(hidden)]
 pub use log;
+
+#[doc(hidden)]
+pub use serde;

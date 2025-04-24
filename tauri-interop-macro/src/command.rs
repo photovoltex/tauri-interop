@@ -40,7 +40,7 @@ pub fn convert_to_binding(stream: TokenStream) -> TokenStream {
     let invoke_binding = invoke.as_expr(command_name, &args_ident);
 
     let stream = quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize)]
+        #[derive(::tauri_interop::serde::Serialize, ::tauri_interop::serde::Deserialize)]
         struct #argument_name #generics {
             #field_definitions
         }
