@@ -51,4 +51,12 @@ pub mod export {
 
     #[cfg(target_family = "wasm")]
     pub use serde_wasm_bindgen;
+
+    #[cfg(not(target_family = "wasm"))]
+    pub use tauri;
 }
+
+// re-export tauri ipc for usage in the command proc-macro of tauri
+#[doc(hidden)]
+#[cfg(not(target_family = "wasm"))]
+pub use tauri::ipc;

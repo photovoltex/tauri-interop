@@ -202,9 +202,11 @@ pub fn command(_attributes: TokenStream, stream: TokenStream) -> TokenStream {
         .unwrap()
         .insert(fn_item.sig.ident.to_string());
 
+    // root = "tauri_interop", we can only provide an Ident and no path to the re-exported crate
+    // see https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-macros/src/command/wrapper.rs#L76
     let command_macro = quote! {
         #[cfg_attr(target_family = "wasm", ::tauri_interop::binding)]
-        #[cfg_attr(not(target_family = "wasm"), ::tauri::command(rename_all = "snake_case"))]
+        #[cfg_attr(not(target_family = "wasm"), ::tauri_interop::export::tauri::command(root = "tauri_interop", rename_all = "snake_case"))]
         #fn_item
     };
 
