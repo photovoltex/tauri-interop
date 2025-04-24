@@ -44,14 +44,11 @@ pub mod command;
 #[doc(cfg(feature = "event"))]
 pub mod event;
 
-// re-exported crates
-
 #[doc(hidden)]
-pub use log;
+pub mod export {
+    pub use log;
+    pub use serde;
 
-#[doc(hidden)]
-pub use serde;
-
-#[doc(hidden)]
-#[cfg(target_family = "wasm")]
-pub use serde_wasm_bindgen;
+    #[cfg(target_family = "wasm")]
+    pub use serde_wasm_bindgen;
+}
