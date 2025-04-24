@@ -51,3 +51,7 @@ pub use log;
 
 #[doc(hidden)]
 pub use serde;
+
+#[doc(hidden)]
+#[cfg(target_family = "wasm")]
+pub use serde_wasm_bindgen;
