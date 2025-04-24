@@ -40,7 +40,7 @@ pub fn convert_to_binding(stream: TokenStream) -> TokenStream {
     let invoke_binding = invoke.as_expr(command_name, &args_ident);
 
     let stream = quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize)]
+        #[derive(::tauri_interop::export::serde::Serialize, ::tauri_interop::export::serde::Deserialize)]
         struct #argument_name #generics {
             #field_definitions
         }
@@ -49,7 +49,7 @@ pub fn convert_to_binding(stream: TokenStream) -> TokenStream {
         pub #async_ident fn #name #generics (#field_definitions) #return_type
         {
             let #args_ident = #argument_name { #field_usage };
-            let #args_ident = ::serde_wasm_bindgen::to_value(&#args_ident)
+            let #args_ident = ::tauri_interop::export::serde_wasm_bindgen::to_value(&#args_ident)
                 .expect("serialized arguments");
 
             #invoke_binding

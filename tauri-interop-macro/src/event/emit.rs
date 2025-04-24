@@ -49,7 +49,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
         }
 
         impl ::tauri_interop::event::Emit for #name {
-            fn emit_all(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
+            fn emit_all(&self, handle: &::tauri_interop::export::tauri::AppHandle) -> Result<(), ::tauri_interop::export::tauri::Error> {
                 use #mod_name::*;
                 use ::tauri_interop::event::Field;
 
@@ -58,7 +58,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
                 Ok(())
             }
 
-            fn emit<F: ::tauri_interop::event::Field<Self>>(&self, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error>
+            fn emit<F: ::tauri_interop::event::Field<Self>>(&self, handle: &::tauri_interop::export::tauri::AppHandle) -> Result<(), ::tauri_interop::export::tauri::Error>
             where
                 Self: Sized
             {
@@ -66,7 +66,7 @@ pub fn derive(stream: TokenStream) -> TokenStream {
                 F::emit(self, handle)
             }
 
-            fn update<F: ::tauri_interop::event::Field<Self>>(&mut self, handle: &::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri::Error>
+            fn update<F: ::tauri_interop::event::Field<Self>>(&mut self, handle: &::tauri_interop::export::tauri::AppHandle, field: F::Type) -> Result<(), ::tauri_interop::export::tauri::Error>
             where
                 Self: Sized
             {
@@ -102,8 +102,8 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
     let get_cmd = cfg!(feature = "initial_value").then_some(quote! {
             #[allow(non_snake_case)]
             #[tauri_interop::command]
-            pub fn #get_cmd(handle: ::tauri::AppHandle) -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {
-                use ::tauri::Manager;
+            pub fn #get_cmd(handle: ::tauri_interop::export::tauri::AppHandle) -> Result<#parent_field_ty, ::tauri_interop::event::EventError> {
+                use ::tauri_interop::export::tauri::Manager;
                 use ::tauri_interop::event::{Field, ManagedEmit, EventError};
 
                 #parent::get_value::<#name>(&handle, |parent| parent.#parent_field_name.clone())
@@ -117,15 +117,15 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
 
             const EVENT_NAME: &'static str = #event_name;
 
-            fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
-                use ::tauri::Emitter;
+            fn emit(parent: &#parent, handle: &::tauri_interop::export::tauri::AppHandle) -> Result<(), ::tauri_interop::export::tauri::Error> {
+                use ::tauri_interop::export::tauri::Emitter;
 
-                log::trace!("Emitted event [{}]", #event_name);
+                ::tauri_interop::export::log::trace!("Emitted event [{}]", #event_name);
 
                 handle.emit(#event_name, parent.#parent_field_name.clone())
             }
 
-            fn update(parent: &mut #parent, handle: &::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri::Error> {
+            fn update(parent: &mut #parent, handle: &::tauri_interop::export::tauri::AppHandle, v: Self::Type) -> Result<(), ::tauri_interop::export::tauri::Error> {
                 parent.#parent_field_name = v;
                 Self::emit(parent, handle)
             }
