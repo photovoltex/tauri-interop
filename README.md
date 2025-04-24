@@ -30,7 +30,7 @@ pub fn greet(name: &str) -> String {
 }
 ```
 
-**And just use, it like it is defined in the ui**
+**And just use it in the UI**
 ```rust
 // ui crate
 
@@ -164,7 +164,7 @@ only once, instead of writing additional commands for our ui code.
 
 As an example, we can move the templates `greet` command defined in `src-tauri/src/lib.rs` into our new `common` crate. 
 For that we need to add a new module/file, which we will name `cmd.rs`. The new module is necessary because
-of a restriction how the commands by `tauri` work (see the second notice in the [Basic Example](https://tauri.app/develop/calling-rust/#basic-example)). 
+due to a restriction on how the commands by `tauri` work (see the second notice in the [Basic Example](https://tauri.app/develop/calling-rust/#basic-example)). 
 Regardless the restrictions we need to adjust the `greet` command slightly by making it public (so we can access it 
 later from our ui code) and replacing `tauri::command` with `tauri_interop::command` (so that the command can be also
 called from our ui code).
@@ -183,7 +183,7 @@ pub fn greet(name: &str) -> String {
 tauri_interop::collect_commands!();
 ```
 
-To use the `get_handlers` function we need to switch to wre the `tauri::Builder` is constructed and register our command
+To use the `get_handlers` function we need to switch to where the `tauri::Builder` is constructed and register our command
 handlers with the `invoke_handler`. By default, the `tauri::generate_handler!` macro is used to accomplish registering 
 all commands, but that part is handled by `tauri-interop` no and can be easily accomplished by calling 
 `common::cmd::get_handlers()` instead.
