@@ -136,3 +136,14 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
 
     TokenStream::from(stream.to_token_stream())
 }
+
+#[cfg(feature = "initial_value")]
+pub fn derive_managed_emit(stream: TokenStream) -> TokenStream {
+    let stream_struct = parse_macro_input!(stream as DeriveInput);
+    let struct_ident = stream_struct.ident;
+
+    let stream = quote! {
+        impl ::tauri_interop::event::ManagedEmit for #struct_ident {}
+    };
+    TokenStream::from(stream.to_token_stream())
+}

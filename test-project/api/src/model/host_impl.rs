@@ -13,6 +13,3 @@ impl ManagedEmit for super::TestState {
         Some(get_field_value(&state))
     }
 }
-
-impl ManagedEmit for super::NamingTestEnum {}
-impl ManagedEmit for super::NamingTestDefault {}
