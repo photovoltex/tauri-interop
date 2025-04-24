@@ -56,6 +56,7 @@ mod event;
 ///     pub bar: Bar
 /// }
 ///
+/// #[cfg(feature = "initial_value")]
 /// impl tauri_interop::event::ManagedEmit for EventModel {}
 ///
 /// // has to be defined in this example, otherwise the
@@ -71,6 +72,32 @@ pub fn derive_event(stream: TokenStream) -> TokenStream {
     } else {
         event::emit::derive(stream)
     }
+}
+
+/// Auto implements the `ManagedEmit` trait from `tauri_interop` when compiling to the host
+///
+/// ### Example
+///
+/// ```
+/// use tauri_interop_macro::{Event, ManagedEmit};
+///
+/// #[derive(Event, ManagedEmit)]
+/// struct EventModel {
+///     foo: String,
+///     pub bar: bool
+/// }
+///
+/// // has to be defined in this example, otherwise the
+/// // macro expansion panics because of missing super
+/// fn main() {}
+/// ```
+#[cfg(all(feature = "event", feature = "initial_value"))]
+#[doc(cfg(all(feature = "event", feature = "initial_value")))]
+#[proc_macro_derive(ManagedEmit)]
+pub fn derive_managed_emit(stream: TokenStream) -> TokenStream {
+    (!cfg!(feature = "_wasm"))
+        .then(|| event::emit::derive_managed_emit(stream))
+        .unwrap_or_default()
 }
 
 /// Generates a default `Emit` implementation for the given struct.

@@ -9,7 +9,7 @@ mod host_impl;
 #[tauri_interop::commands]
 pub mod other_cmd;
 
-use tauri_interop::Event;
+use tauri_interop::{Event, ManagedEmit};
 
 #[derive(Default, Event)]
 #[mod_name(test_mod)]
@@ -18,14 +18,14 @@ pub struct TestState {
     pub bar: bool,
 }
 
-#[derive(Default, Event)]
+#[derive(Default, Event, ManagedEmit)]
 #[auto_naming(EnumLike)]
 pub struct NamingTestEnum {
     foo: String,
     pub bar: bool,
 }
 
-#[derive(Default, Event)]
+#[derive(Default, Event, ManagedEmit)]
 pub struct NamingTestDefault {
     foo: String,
     pub bar: bool,
