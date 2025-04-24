@@ -13,10 +13,69 @@ need to be handled manually or be called via a wrapper/helper each time.
 
 The crates therefore provides the following features:
 
-- generate a wasm function out of the defined tauri-command
-- collect and register all defined tauri-commands
-- QOL-macros to exclude multiple imports in wasm or the host architecture
-- easier usage of [tauri's event feature](https://tauri.app/v1/guides/features/events/)
+- generate a wasm function out of the defined tauri-command (`tauri_interop::command`)
+- collect and register all defined tauri-commands (`tauri_interop::collect_commands`)
+- QOL-macros to exclude multiple imports in wasm or the host architecture (`tauri_interop::{host_usage, wasm_usage}`)
+- easier usage of [tauri's event feature](https://tauri.app/v1/guides/features/events/) (feature: `event`)
+
+### Commands
+
+**Define a command in a common crate**
+```rust
+// common crate: cmd.rs
+
+#[tauri_interop::command]
+pub fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+```
+
+**And just use, it like it is defined in the ui**
+```rust
+// ui crate
+
+async fn call_greet(name: &str) -> String {
+    common::cmd::greet(&name).await
+}
+```
+
+
+### Events (requires the `event` feature)
+
+**Define a struct with some field**
+```rust
+// common crate: model.rs
+
+// Event will generate new items which can then be used to emit and listen to values
+#[derive(Default, Event)]
+pub struct FooBar { // mod foo_bar
+    foo: String, // struct FFoo
+    pub bar: bool, // struct FBar
+}
+```
+
+**Define a command which can use the instance when registered to tauri's state system**
+```rust
+// common crate: cmd.rs
+#[tauri_interop::command]
+pub fn emit_bar(state: TauriState<FooBar>, handle: TauriAppHandle) {
+    state.update::<foo_bar::FBar>(&handle, true).unwrap();
+}
+```
+
+**Listen to the field in the ui**
+```rust
+// ui crate
+
+pub fn listen() {
+    // default usage, returns a handle which needs to be hold in scope
+    let listen_handle = FooBar::listen_to::<foo_bar::FBar>(|echo| log::info!("bar: {echo}"));
+
+    // with feature: leptos, integrates nicely into the component system without needing to worry about the handle
+    let signal = FooBar::use_field::<foo_bar::FBar>(None);
+}
+
+```
 
 ## Compatability and requirements
 
@@ -100,35 +159,59 @@ initial setup.
 
 ### Usage of the new structure
 
-Now that we have a unified place where we can place common code, we can use the strong advantage of writing the wasm
-and host part in one language by only writing our commands once.
+Now that we have a unified place where we can place common code, we can use the strong advantage of writing the commands
+only once, instead of writing additional commands for our ui code.
 
-For that we can move the templates `greet` command defined in `src-tauri/src/lib.rs` into our new `common` crate. For
-that we need to add a new module (will be referred as `cmd` or `cmd.rs` later). This is necessary because of a
-restriction how the commands by `tauri` work. The restriction is described here in the [Second Note](https://tauri.app/develop/calling-rust/#basic-example). 
-Regardless the restrictions we need to modify the `greet` command slightly by making it public and replacing 
-`tauri::command` with `tauri_interop::command`. `tauri_interop::command` is a wrapper for `tauri::command` when 
-compiling to the host target, but will generate wasm bindings when compiling to wasm.
+As an example, we can move the templates `greet` command defined in `src-tauri/src/lib.rs` into our new `common` crate. 
+For that we need to add a new module/file, which we will name `cmd.rs`. The new module is necessary because
+of a restriction how the commands by `tauri` work (see the second notice in the [Basic Example](https://tauri.app/develop/calling-rust/#basic-example)). 
+Regardless the restrictions we need to adjust the `greet` command slightly by making it public (so we can access it 
+later from our ui code) and replacing `tauri::command` with `tauri_interop::command` (so that the command can be also
+called from our ui code).
 
-With that done, our main binary can't find the `greet` command anymore to include in the `tauri::generate_handler!`
-macro. To resolve this we need to call the `tauri_interop::collect_commands!()` macro at the end of the file, where we
-moved the `greet` command, which should be `cmd.rs`.
+Additionally, we can use `tauri_interop::collect_commands!()` to collect all commands in the current file and register 
+them in our app with a newly generated `get_handlers` function. The `cmd.rs` should look something like this now: 
 
-The call of `tauri_interop::collect_commands!()` will then generate a function called `get_handlers` in the module
-where it was called. This function is intended to be called in place of `tauri::generate_handler!` and will add the
-commands automatically annotated with `tauri_interop::command` to our tauri app. To use it in our example we now need to
-replace `tauri::generate_handler![greet]` with `common::cmd::get_handlers()` (requires `cmd` to be public).
+```rust
+// cmd.rs
+
+#[tauri_interop::command]
+pub fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+tauri_interop::collect_commands!();
+```
+
+To use the `get_handlers` function we need to switch to wre the `tauri::Builder` is constructed and register our command
+handlers with the `invoke_handler`. By default, the `tauri::generate_handler!` macro is used to accomplish registering 
+all commands, but that part is handled by `tauri-interop` no and can be easily accomplished by calling 
+`common::cmd::get_handlers()` instead.
 
 > To create more complex command constellations `tauri_interop::combine_handlers!()` is provided to merge commands
 > defined in multiple modules.
 
-Now we need to actually call our newly defined command in from our `common` crate in our `wasm` code. To do that we need
-to go to `src/app.rs` and replace `invoke("greet", args).await.as_string().unwrap()` with
-`common::cmd::greet(&name).await`.
+```rust
+// lib.rs
 
-> By doing that, we can also remove all the overhead (`invoke` and `GreetArgs`) which is usually necessary to write by
-> ourselves, but is now automatically generated by `tauri-interop` in addition to providing correct types for both the
-> parameters and return type.
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(common::cmd::get_handlers())
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+Now we need to actually call our command in our `ui` code. We can simply do that by calling `common::cmd::greet`. 
+Because we have a function that returns a value, the generated function is `async` and we need to await it.
+
+```rust
+async fn call_greet(name: &str) -> String {
+    common::cmd::greet(&name).await
+}
+```
 
 ### Note
 
