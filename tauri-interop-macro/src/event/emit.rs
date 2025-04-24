@@ -120,7 +120,7 @@ pub fn derive_field(stream: TokenStream) -> TokenStream {
             fn emit(parent: &#parent, handle: &::tauri::AppHandle) -> Result<(), ::tauri::Error> {
                 use ::tauri::Emitter;
 
-                log::trace!("Emitted event [{}]", #event_name);
+                ::tauri_interop::log::trace!("Emitted event [{}]", #event_name);
 
                 handle.emit(#event_name, parent.#parent_field_name.clone())
             }

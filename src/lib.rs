@@ -43,3 +43,8 @@ pub mod command;
 #[cfg(feature = "event")]
 #[doc(cfg(feature = "event"))]
 pub mod event;
+
+// re-exported crates
+
+#[doc(hidden)]
+pub use log;

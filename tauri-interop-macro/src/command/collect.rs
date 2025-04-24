@@ -69,7 +69,7 @@ pub fn get_handler_function(
             #( use #include_mods; )*
 
             let handlers = vec! [ #( #commands ),* ];
-            log::debug!("Registering following commands to tauri: {handlers:#?}");
+            ::tauri_interop::log::debug!("Registering following commands to tauri: {handlers:#?}");
 
             ::tauri::generate_handler![ #handlers ]
         }
