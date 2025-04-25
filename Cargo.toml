@@ -5,6 +5,7 @@ package.keywords = ["wasm", "tauri", "command", "event", "leptos"]
 package.authors = ["photovoltex"]
 package.repository = "https://github.com/photovoltex/tauri-interop.git"
 package.license = "MIT OR Apache-2.0"
+package.exclude = ["publish.sh", "CHANGELOG.md", "/.github"]
 
 [package.metadata.docs.rs]
 # see https://docs.rs/about/metadata for more options
@@ -19,6 +20,7 @@ keywords.workspace = true
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+exclude.workspace = true
 
 name = "tauri-interop"
 description = "Easily connect your rust frontend and backend without writing duplicate code."
