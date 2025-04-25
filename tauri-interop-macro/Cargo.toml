@@ -5,6 +5,7 @@ keywords.workspace = true
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+exclude.workspace = true
 
 name = "tauri-interop-macro"
 description = "Macros for the tauri-interop crate."
