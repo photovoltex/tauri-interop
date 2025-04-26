@@ -407,7 +407,7 @@ pub fn combine_handlers(stream: TokenStream) -> TokenStream {
 /// }
 ///
 /// #[tauri_interop_macro::command]
-/// pub fn empty_invoke(_state: State<RwLock<String>>) {}
+/// fn empty_invoke(_state: State<RwLock<String>>) {}
 /// ```
 #[proc_macro]
 pub fn host_usage(stream: TokenStream) -> TokenStream {
