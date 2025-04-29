@@ -27,7 +27,7 @@ description = "Easily connect your rust frontend and backend without writing dup
 readme = "README.md"
 
 [dependencies]
-tauri-interop-macro = { version = "2.2.0", path = "./tauri-interop-macro" }
+tauri-interop-macro = { version = "2.2.1", path = "./tauri-interop-macro" }
 
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
@@ -45,7 +45,7 @@ leptos = { version = "0.7", optional = true }
 tauri = { version = "^2", default-features = false, features = ["wry"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-tauri-interop-macro = { version = "2.2.0", path = "./tauri-interop-macro", features = ["_wasm"] }
+tauri-interop-macro = { version = "2.2.1", path = "./tauri-interop-macro", features = ["_wasm"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tauri = { version = "^2", default-features = false, features = ["wry"] }
